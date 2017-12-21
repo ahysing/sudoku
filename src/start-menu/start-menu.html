@@ -1,0 +1,106 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/hardware-icons.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<dom-module id="start-menu">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      .board {
+        border: 3px;
+      }
+    </style>
+    <paper-dialog modal opened="{{open}}" on-openstartmenu="handleOpenStartMenu">
+      <h2>Lets set up the game board</h2>
+      <paper-dialog-scrollable>
+        <label>Board size</label>
+        <paper-listbox attr-for-selected="item-name" selected="{{numbers}}">
+          <paper-item item-name="4">4</paper-item>
+          <paper-item item-name="9">9</paper-item>
+          <paper-item item-name="16">16</paper-item>
+        </paper-listbox>
+        
+        <label>Difficulty</label>
+        <paper-listbox attr-for-selected="item-name" selected="{{difficulty}}">
+          <paper-item item-name="Easy">Easy</paper-item>
+          <paper-item item-name="Medium">Medium</paper-item>
+          <paper-item item-name="Hard">Hard</paper-item>
+        </paper-listbox>
+        <paper-button focus on-tap="handleConfirm"><iron-icon icon="hardware:videogame-asset"></iron-icon>Start</paper-button>
+      </paper-dialog-scrollable>
+    </paper-dialog>
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class StartMenu extends Polymer.Element {
+      static get is() {
+        return "start-menu";
+      }
+      static get properties() {
+        return {
+          numbers: {
+            type: Number,
+            value: 9,
+            notify: true
+          },
+          difficulty: {
+            type: String,
+            value: "Medium",
+            notify: true
+          },
+          open: {
+            type: Boolean,
+            notify: true
+          }
+        }
+      }
+      constructor() {
+        super()
+      }
+      ready () {
+        super.ready();
+        console.log("start-menu ready");
+        //this.set("open", true);
+        this.addEventListener("openstartmenu", this.handleOpenStartMenu.bind(this));
+      }
+      handleOpenStartMenu(evt) {
+        console.log("handleOpenStartMenu");
+        // TODO: use events not explicit calls.
+        this.set("open", true);
+      }
+      handleConfirm (evt) {
+        console.log("handleConfirm", evt);
+        var numbers = parseInt(this.get("numbers"));
+        var difficulty = this.get("difficulty");
+        var startParameters = {
+          numbers: numbers,
+          difficulty: difficulty
+        };
+
+        this.set("open", false);
+
+        console.log("closestartmenu", startParameters);
+        this.dispatchEvent(new CustomEvent("closestartmenu", {
+          detail: startParameters,
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        }));
+      }
+    }
+
+    window.customElements.define(StartMenu.is, StartMenu);
+  </script>
+</dom-module>
+    

@@ -1,0 +1,7 @@
+{
+  "name": "sudoku",
+  "short_name": "sudoku",
+  "description": "interactive sudoku solver",
+  "start_url": "/",
+  "display": "standalone"
+}

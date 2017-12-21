@@ -1,0 +1,175 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../start-menu/start-menu.html">
+<link rel="import" href="../sudoku-section/sudoku-section.html">
+<dom-module id="sudoku-app">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      .board {
+        border: 3px;
+      }
+    </style>
+    <div class="board">
+      <start-menu id="start-menu"></start-menu>
+      <template is="dom-repeat" items="[[sections]]">
+        <sudoku-section id="sudoku-section" blocks="[[item]]" numbers="[[numbers]]"></sudoku-section>
+      </template>
+    </div>
+  </template>
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class SudokuApp extends Polymer.Element {
+      static get is() { return 'sudoku-app'; }
+      static get properties() {
+        return {
+          sections: {
+            type: Array,
+            value: [],
+            notify: true
+          },
+          numbers: {
+            type: Number
+          },
+          invalidRows: {
+            type: Array,
+            value: []
+          },
+          invalidColumns: {
+            type: Array,
+            value: []
+          }
+         };
+      }
+      constructor() {
+        super();
+      }
+      ready() {
+        super.ready();
+        console.log("sudoku-app ready");
+        
+        this.addEventListener("inputadded", this.handleInputAdded.bind(this));
+        this.addEventListener("inputremoved", this.handleInputRemoved.bind(this));
+        this.addEventListener("closestartmenu", this.handleCloseStartMenu.bind(this));
+        
+        var menu = Polymer.dom(this.root).querySelector("start-menu");
+        if (menu) {
+          menu.dispatchEvent(new CustomEvent("openstartmenu", {
+            detail: {},
+            bubbles: true,
+            cancelable: true
+          }));
+        }
+      }
+      getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+      setupEasy(sections, numbers) {
+        this.setupHard(sections, numbers);
+      }
+      setupMedium(sections, numbers) {
+        this.setupHard(sections, numbers);
+      }
+      setupHard(sections, numbers) {
+        var sqrt = Math.sqrt(numbers);
+        var indices = Array(numbers).fill(-1);
+        var values = Array(numbers).fill(-1);
+        var assignedRows = Array(sqrt).fill(true);
+        var assignedColumns = Array(sqrt).fill(true);
+        
+        var isEmptyRow = function (rows, idx) {
+          var i = Math.floor(idx / sqrt);
+          return rows[i];
+        }
+
+        var isEmptyColumn = function (columns, idx) {
+          var i = Math.floor(idx % sqrt);
+          return columns[i];
+        }
+
+        var fillRow = function (rows, idx) {
+          var i = Math.floor(idx / sqrt);
+          rows[i] = false;
+        }
+
+        var fillColumn = function (columns, idx) {
+          var i = Math.floor(idx % sqrt);
+          columns[i] = false;
+        }
+        
+        for (var i = 0; i < sqrt; i++) {
+          var idx = -1;
+          var value = -1;
+          
+          var emptyRow, emptyColumn;
+          do {
+            idx = this.getRandomInt(0, numbers - 1);
+            emptyRow = isEmptyRow(assignedRows, idx);
+            emptyColumn = isEmptyColumn(assignedRows, idx);
+          } while (!emptyRow || !emptyColumn);
+          fillRow(assignedRows, idx);
+          fillColumn(assignedColumns, idx);
+          indices[i] = idx;
+
+          do {
+            value = this.getRandomInt(0, numbers);
+          } while (values.includes(value))
+          values[i] = value
+        }
+
+        for (var i = 0; i < numbers; i++) {
+          var idx = indices[i];
+          var value = values[i];
+          sections[i][idx] = value;
+        }
+      }
+      setupGame(parameters) {
+        const difficulty = parameters.difficulty;
+        const numbers = parameters.numbers;
+
+        var sections = new Array(numbers);
+        for (var i = 0; i < numbers; i++) {
+          sections[i] = new Array(numbers);
+          sections[i].fill(null);
+        }
+
+        switch (difficulty) {
+          case "Easy":
+            this.setupEasy(sections, numbers);
+            break;
+          case "Medium":
+            this.setupMedium(sections, numbers);
+            break;
+          case "Hard":
+            this.setupHard(sections, numbers);
+            break;
+          default:
+            break;
+        }
+
+        this.set("sections", sections);
+      }
+      validate (evt) {
+      }
+      handleCloseStartMenu (evt) {
+        console.log("handleCloseStartMenu");
+        this.set("numbers", evt.detail.numbers);
+        this.setupGame(evt.detail);
+      }
+      handleInputAdded (evt) {
+        console.log("letter added", evt);
+        validate(evt);
+      }
+      handleInputRemoved (evt) {
+        console.log("letter removed", evt);
+        validate(evt);
+      }
+    }
+
+    window.customElements.define(SudokuApp.is, SudokuApp);
+  </script>
+</dom-module>
