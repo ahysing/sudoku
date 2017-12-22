@@ -16,7 +16,8 @@
     "iron-validator-behavior": "PolymerElements/iron-validator-behavior#2.0.0",
     "neon-animation": "PolymerElements/neon-animation#^2.0.2",
     "web-animations-js": "^2.3.1",
-    "paper-toggle-button": "PolymerElements/paper-toggle-button#^2.0.0"
+    "paper-toggle-button": "PolymerElements/paper-toggle-button#^2.0.0",
+    "iron-input": "^2.0.1"
   },
   "devDependencies": {
     "web-component-tester": "Polymer/web-component-tester#^6.0.0",

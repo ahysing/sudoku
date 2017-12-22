@@ -2,7 +2,7 @@
 <link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="../../bower_components/iron-validator-behavior/iron-validator-behavior.html">
-<<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <dom-module id="sudoku-section">
   <template>
     <style is="custom-style">
@@ -122,17 +122,18 @@
       }
       .block {
         width: 40px;
-        height: 40px;
         text-align: center;
         font-size: 2.5em;
       }
+      
       :host([invalid]) {
         background: pink;
         @apply --sudoku-block-invalid-background;
       }
     </style>
     <sudoku-block-validator numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]" is-valid="{{isValid}}"></sudoku-block-validator>
-    <paper-input class="block" no-label-float auto-validate validator="sudoku-block-validator" value="{{value}}"></paper-input>
+    <paper-input class="block" no-label-float auto-validate validator="sudoku-block-validator" value="{{value}}">
+    </paper-input>
   </template>
   
   <script>
