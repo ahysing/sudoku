@@ -1,6 +1,8 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../start-menu/start-menu.html">
 <link rel="import" href="../sudoku-section/sudoku-section.html">
+
+<link rel="import" href="../sudoku-block/sudoku-block.html">
 <dom-module id="sudoku-app">
   <template>
     <style>
@@ -14,7 +16,7 @@
     <div class="board">
       <start-menu id="start-menu"></start-menu>
       <template is="dom-repeat" items="[[sections]]">
-        <sudoku-section id="sudoku-section" blocks="[[item]]" numbers="[[numbers]]"></sudoku-section>
+        <sudoku-section id="section-[[index]]" blocks="[[item]]" numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section>
       </template>
     </div>
   </template>
@@ -50,15 +52,15 @@
       }
       ready() {
         super.ready();
-        console.log("sudoku-app ready");
+        console.log('sudoku-app ready');
         
-        this.addEventListener("inputadded", this.handleInputAdded.bind(this));
-        this.addEventListener("inputremoved", this.handleInputRemoved.bind(this));
-        this.addEventListener("closestartmenu", this.handleCloseStartMenu.bind(this));
+        this.addEventListener('inputadded', this.handleInputAdded.bind(this));
+        this.addEventListener('inputremoved', this.handleInputRemoved.bind(this));
+        this.addEventListener('closestartmenu', this.handleCloseStartMenu.bind(this));
         
-        var menu = Polymer.dom(this.root).querySelector("start-menu");
+        var menu = Polymer.dom(this.root).querySelector('start-menu');
         if (menu) {
-          menu.dispatchEvent(new CustomEvent("openstartmenu", {
+          menu.dispatchEvent(new CustomEvent('openstartmenu', {
             detail: {},
             bubbles: true,
             cancelable: true
@@ -116,7 +118,7 @@
           indices[i] = idx;
 
           do {
-            value = this.getRandomInt(0, numbers);
+            value = this.getRandomInt(1, numbers);
           } while (values.includes(value))
           values[i] = value
         }
@@ -124,7 +126,9 @@
         for (var i = 0; i < numbers; i++) {
           var idx = indices[i];
           var value = values[i];
-          sections[i][idx] = value;
+          if (value > 0) {
+            sections[i][idx] = value;
+          }
         }
       }
       setupGame(parameters) {
@@ -138,34 +142,35 @@
         }
 
         switch (difficulty) {
-          case "Easy":
+          case 'Easy':
             this.setupEasy(sections, numbers);
             break;
-          case "Medium":
+          case 'Medium':
             this.setupMedium(sections, numbers);
             break;
-          case "Hard":
+          case 'Hard':
             this.setupHard(sections, numbers);
             break;
           default:
             break;
         }
 
-        this.set("sections", sections);
+        this.set('sections', sections);
       }
       validate (evt) {
       }
       handleCloseStartMenu (evt) {
-        console.log("handleCloseStartMenu");
-        this.set("numbers", evt.detail.numbers);
+        console.log('handleCloseStartMenu');
+        this.set('numbers', evt.detail.numbers);
+        this.set('useHexadecimal', evt.detail.useHexadecimal);
         this.setupGame(evt.detail);
       }
       handleInputAdded (evt) {
-        console.log("letter added", evt);
+        console.log('letter added', evt);
         validate(evt);
       }
       handleInputRemoved (evt) {
-        console.log("letter removed", evt);
+        console.log('letter removed', evt);
         validate(evt);
       }
     }

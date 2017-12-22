@@ -1,0 +1,104 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/iron-validator-behavior/iron-validator-behavior.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<dom-module id="sudoku-block">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      .block {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        font-size: 2.5em;
+        border: 1px;
+      }
+    </style>
+    <sudoku-block-validator numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-block-validator>
+    <paper-input class="block" auto-validate validator="sudoku-block-validator" value="{{value}}"></paper-input>
+  </template>
+  
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class SudokuBlock extends Polymer.Element {
+      static get is() { return 'sudoku-block'; }
+      static get properties () {
+        return {
+          value: {
+            type: Number,
+            value: null,
+            observer: '_signalBlockChange'
+          },
+          numbers: {
+            type: Number,
+            value: 0
+          },
+          useHexadecimal: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+      constructor() {
+        super();
+        console.log('constructor');
+      }
+      ready() {
+        super.ready();
+        console.log('ready');
+      }
+      _signalBlockChange(newValue, oldValue) {
+        console.log('block changed');
+      }
+    }
+
+    class SudokuBlockValidator extends Polymer.mixinBehaviors([Polymer.IronValidatorBehavior],
+                                         Polymer.Element) {
+      static get is() { return 'sudoku-block-validator'; }
+      static get properties () {
+        return {
+          numbers: {
+            type: Number,
+            value: 0
+          },
+          useHexadecimal: {
+            type: Boolean,
+            value: false
+          }
+        };
+      }
+      ready() {
+        super.ready();
+        console.log('SudokuBlockValidator ready');
+        // workaround for polymer 2 validators
+        new Polymer.IronMeta({type: 'validator', key: SudokuBlockValidator.is, value: this});
+      }
+      validate(value) {
+        console.log('validate block');
+        if (value) {
+          var numbers = this.get('numbers');
+          var newValue = this._parse(value);
+          return ! isNaN(newValue) && newValue > 0 && newValue <= numbers;
+        } else {
+          return true;
+        }
+      }
+      _parse(value) {
+        var radix = 10;
+        if (this.get('useHexadecimal')) {
+          radix = 16;
+        }
+
+        var newValue = parseInt(value, radix);
+        return newValue;
+      }
+    }
+
+    window.customElements.define(SudokuBlock.is, SudokuBlock);
+    window.customElements.define(SudokuBlockValidator.is, SudokuBlockValidator);
+</script>
+</dom-module>
