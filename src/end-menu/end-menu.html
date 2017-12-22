@@ -1,0 +1,100 @@
+<link rel="import" href="../../bower_components/polymer/polymer-element.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dialog-scrollable/paper-dialog-scrollable.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/hardware-icons.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/neon-animation/web-animations.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<dom-module id="end-menu">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      .board {
+        border: 3px;
+      }
+    </style>
+    <paper-dialog modal opened="[[open]]" on-openstartmenu="handleOpenEndMenu">
+      <h2>You won!</h2>
+      <paper-dialog-scrollable>
+        <paper-button autofocus on-tap="handleConfirm"><iron-icon icon="hardware:videogame-asset"></iron-icon>OK</paper-button>
+      </paper-dialog-scrollable>
+    </paper-dialog>
+  </template>
+
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class EndMenu extends Polymer.Element {
+      static get is() {
+        return "end-menu";
+      }
+      static get properties() {
+        return {
+          numbers: {
+            type: Number,
+            value: 9,
+            notify: true
+          },
+          difficulty: {
+            type: String,
+            value: "Medium",
+            notify: true
+          },
+          useHexadecimal: {
+            type: Boolean,
+            value: false
+          },
+          open: {
+            type: Boolean,
+            notify: true
+          }
+        }
+      }
+      constructor() {
+        super()
+      }
+      ready () {
+        super.ready();
+        console.log("end-menu ready");
+        //this.set("open", true);
+        this.addEventListener("openstartmenu", this.handleOpenEndMenu.bind(this));
+      }
+      handleOpenEndMenu(evt) {
+        console.log("handleOpenEndMenu");
+        // TODO: use events not explicit calls.
+        this.set("open", true);
+      }
+      handleConfirm (evt) {
+        console.log("handleConfirm", evt);
+        var numbers = parseInt(this.get("numbers"));
+        var difficulty = this.get("difficulty");
+        var useHexadecimal = this.get('useHexadecimal');
+        var startParameters = {
+          numbers: numbers,
+          difficulty: difficulty,
+          useHexadecimal: useHexadecimal
+        };
+
+        this.set("open", false);
+
+        console.log("closestartmenu", startParameters);
+        this.dispatchEvent(new CustomEvent("closestartmenu", {
+          detail: startParameters,
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        }));
+      }
+    }
+
+    window.customElements.define(EndMenu.is, EndMenu);
+  </script>
+</dom-module>
+    

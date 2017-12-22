@@ -1,5 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../start-menu/start-menu.html">
+<link rel="import" href="../end-menu/end-menu.html">
 <link rel="import" href="../sudoku-section/sudoku-section.html">
 <dom-module id="sudoku-app">
   <template>
@@ -24,6 +25,7 @@
     </style>
     <div class="board size">
       <start-menu id="start-menu"></start-menu>
+      <end-menu id="end-menu"></end-menu>
       <template is="dom-repeat" items="[[sections]]">
         <sudoku-section id="section-[[index]]" blocks="[[item]]" numbers$="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section>
       </template>
@@ -62,7 +64,7 @@
         console.log('sudoku-app ready');
         
         this.addEventListener('closestartmenu', this.handleCloseStartMenu.bind(this));
-        
+        this.addEventListener('sectionfilled', this.handleSectionFilled.bind(this));
         var menu = Polymer.dom(this.root).querySelector('start-menu');
         if (menu) {
           menu.dispatchEvent(new CustomEvent('openstartmenu', {
@@ -185,6 +187,12 @@
         this.set('numbers', evt.detail.numbers);
         this.set('useHexadecimal', evt.detail.useHexadecimal);
         this.setupGame(evt.detail);
+      }
+      handleSectionFilled(evt) {
+        var sections = this.get('sections');
+        if (validate(sections)){
+
+        }
       }
     }
 
