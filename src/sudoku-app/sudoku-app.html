@@ -1,22 +1,22 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../start-menu/start-menu.html">
 <link rel="import" href="../sudoku-section/sudoku-section.html">
-<link rek="import" href="../sudoku-block/sudoku-block.html">
-
 <dom-module id="sudoku-app">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
         display: block;
-      }
+        }
       .board {
-        border: 3px;
+        border: 3px solid black;
+        @apply --layout-horizontal;
+        @apply --layout-wrap;
       }
     </style>
     <div class="board">
       <start-menu id="start-menu"></start-menu>
       <template is="dom-repeat" items="[[sections]]">
-        <sudoku-section id="section-[[index]]" blocks="[[item]]" numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section>
+        <sudoku-section id="section-[[index]]" blocks="[[item]]" numbers$="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section>
       </template>
     </div>
   </template>
@@ -40,14 +40,6 @@
           useHexadecimal: {
             type: Boolean,
             value: false
-          },
-          invalidRows: {
-            type: Array,
-            value: []
-          },
-          invalidColumns: {
-            type: Array,
-            value: []
           }
          };
       }
@@ -58,8 +50,6 @@
         super.ready();
         console.log('sudoku-app ready');
         
-        this.addEventListener('inputadded', this.handleInputAdded.bind(this));
-        this.addEventListener('inputremoved', this.handleInputRemoved.bind(this));
         this.addEventListener('closestartmenu', this.handleCloseStartMenu.bind(this));
         
         var menu = Polymer.dom(this.root).querySelector('start-menu');
@@ -168,14 +158,6 @@
         this.set('numbers', evt.detail.numbers);
         this.set('useHexadecimal', evt.detail.useHexadecimal);
         this.setupGame(evt.detail);
-      }
-      handleInputAdded (evt) {
-        console.log('letter added', evt);
-        validate(evt);
-      }
-      handleInputRemoved (evt) {
-        console.log('letter removed', evt);
-        validate(evt);
       }
     }
 

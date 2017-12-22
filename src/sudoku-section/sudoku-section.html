@@ -2,42 +2,28 @@
 <link rel="import" href="../../bower_components/polymer/lib/elements/dom-repeat.html">
 <link rel="import" href="../../bower_components/polymer/lib/elements/dom-if.html">
 <link rel="import" href="../../bower_components/iron-validator-behavior/iron-validator-behavior.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout.html">
-<link rek="import" href="../sudoku-block/sudoku-block.html">
+<<link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <dom-module id="sudoku-section">
   <template>
-    <style>
+    <style is="custom-style">
       :host {
-        display: block;
-      }
-      .invalid {
-        border: 3px;
-        background-color: pink;
-      }
-      .section {
         @apply --layout-horizontal;
         @apply --layout-wrap;
-        border: 3px;
+        border: 1px solid black;
       }
-      .size-2 {
+      :host([numbers="4"]) {
         width: 80px;
       }
-      .size-3 {
+      :host([numbers="9"]) {
         width: 120px;
       }
-      .size-4 {
+      :host([numbers="16"]) {
         width: 160px;
       }
-      
     </style>
-    <div class="section">
-      <template is="dom-repeat" items="{{blocks}}">
-        <sudoku-block value="{{item}}" use-hexadecimal="[[useHexadecimal]]" numbers="[[numbers]]" auto-validate validate="sudoku-section-validator"></sudoku-block>
-        <br dom-if="([[index]] % [[numbers]]) === 0">
-      </template>
-      <sudoku-section-validator validator-name="sudoku-section-validator" numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section-validator>
-      
-    </div>
+    <template is="dom-repeat" items="{{blocks}}" mutable-data>
+      <sudoku-block value="{{item}}" invalid$="[[hasInvalidSector]]" index="[[index]]" use-hexadecimal="[[useHexadecimal]]" numbers="[[numbers]]" auto-validate validate="sudoku-section-validator"></sudoku-block>
+    </template>
   </template>
 
   <script>
@@ -45,63 +31,73 @@
      * @customElement
      * @polymer
      */
-     class SudokuSection extends Polymer.Element {
+     class SudokuSection extends  Polymer.MutableData(Polymer.Element) {
         static get is() { return 'sudoku-section'; }
         static get properties() {
           return {
               blocks: {
                 type: Array,
                 value: [],
+                notify: true,
                 observer: '_signalSectorChange'
               },
               numbers: {
                 type: Number,
-                value: 9,
-                observer: '_recalculateWidth'
+                value: 9
               },
               useHexadecimal: {
                 type: Boolean,
                 value: false
               },
-              invalidRows: {
-                  type: Array,
-                  value: []
-              },
-              invalidColumns: {
-                  type: Array,
-                  value: []
+              hasInvalidSector: {
+                type: Boolean,
+                value: false,
+                notify: true
               }
           };
       }
       _signalSectorChange(newValue, oldValue) {
-
-        console.log('Changed: ', oldValue, newValue);
+        console.log('Sector changed: ', oldValue, newValue);
         if (newValue !== oldValue) {
-        }
-      }
-      _recalculateWidth(newValue, oldValue) {
-        if (newValue !== oldValue) {
-          var sqrt = Math.sqrt(newValue);
-          console.log('_recalculateWidth(...) resizing board for ' + sqrt.toString() + ' sectors.');
-          var element = Polymer.dom(this.root).querySelector('.section');
-          element.class = 'section size-' + newValue.toString();
-        } else {
-          console.log('_recalculateWidth(...) skipped. the size is the same.');
         }
       }
       handleInputAdded (evt) {
         console.log('letter added', evt);
+        this.set('blocks.' + evt.detail.index, evt.detail.value);
+        var blocks = this.get('blocks');
+        if (!this.validate(blocks)) {
+          console.warn('failed', blocks);
+          this.set('hasInvalidSector', true);
+        } else {
+
+          this.set('hasInvalidSector', false);
+        }
       }
-      handleInputRemoved (evt) {
-        console.log('letter removed', evt);
+      validate(values) { // TODO: remove
+        console.log('validate section');
+        var numbers = this.get('numbers');
+        var hasNoDuplicates = true;
+        var ints = null;
+        if (this.get('useHexadecimal')) {
+          ints = values.map(this._parseHex);
+        } else {
+          ints = values.map(this._parseDec);
+        }
+
+        for (var i = 1; i <= numbers; i++) {
+          hasNoDuplicates = hasNoDuplicates && (ints.indexOf(i) == ints.lastIndexOf(i));
+        }
+
+        return hasNoDuplicates;
       }
-      handleRowInvalid(evt) {
+      _parseHex(value) {
+        var radix = 10;
+        var newValue = parseInt(value, radix);
+        return newValue;
       }
-      handleColumnInvalid(evt) {
-      }
-      validate(value) {
-        console.log('validate in SudokuSection. this should not be used');
-        return true;
+      _parseDec(value) {
+        var newValue = parseInt(value);
+        return newValue;
       }
       constructor() {
         super();
@@ -109,18 +105,104 @@
       }
       ready() {
         super.ready();
-
         console.log('ready');
         this.addEventListener('inputadded', this.handleInputAdded.bind(this));
-        this.addEventListener('inputremoved', this.handleInputRemoved.bind(this));
-        this.addEventListener('rowinvalid', this.handleRowInvalid.bind(this));
-        this.addEventListener('columninvalid', this.handleColumnInvalid.bind(this));
       }
     }
 
-    class SudokuSectionValidator extends Polymer.mixinBehaviors([Polymer.IronValidatorBehavior],
+     window.customElements.define(SudokuSection.is, SudokuSection);
+  </script>
+</dom-module>
+
+<dom-module id="sudoku-block">
+  <template>
+    <style is="custom-style">
+      :host {
+        display: block;
+      }
+      .block {
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        font-size: 2.5em;
+      }
+      :host([invalid]) {
+        background: pink;
+        @apply --sudoku-block-invalid-background;
+      }
+    </style>
+    <sudoku-block-validator numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]" is-valid="{{isValid}}"></sudoku-block-validator>
+    <paper-input class="block" no-label-float auto-validate validator="sudoku-block-validator" value="{{value}}"></paper-input>
+  </template>
+  
+  <script>
+    /**
+     * @customElement
+     * @polymer
+     */
+    class SudokuBlock extends Polymer.Element {
+        static get is() { return 'sudoku-block'; }
+        static get properties () {
+          return {
+            value: {
+              type: Number,
+              value: null,
+              notify: true,
+              observer: '_signalBlockChange'
+            },
+            isValid: {
+              type: Boolean,
+              value: true,
+              notify: true,
+            },
+            index: {
+              type: Number,
+              value: -1
+            },
+            numbers: {
+              type: Number,
+              value: 0
+            },
+            useHexadecimal: {
+              type: Boolean,
+              value: false
+            }
+          };
+        }
+        constructor() {
+          super();
+          console.log('constructor');
+        }
+        ready() {
+          super.ready();
+          console.log('ready');
+        }
+        _signalBlockChange(newValue, oldValue) {
+          console.log('block changed', oldValue, newValue);
+          var isValid = this.get('isValid');
+          if (isValid || isValid === undefined) {
+            var value = this.get('value');
+            var index = this.get('index');
+            var blockParameters = {
+              index: index,
+              value: value
+            }
+
+            var event = 'inputadded';
+
+            this.dispatchEvent(new CustomEvent(event, {
+              detail: blockParameters,
+              bubbles: true,
+              cancelable: true,
+              composed: true
+            }));
+          }
+        }
+    }
+
+    class SudokuBlockValidator extends Polymer.mixinBehaviors([Polymer.IronValidatorBehavior, Polymer.MutableData],
                                          Polymer.Element) {
-      static get is() { return 'sudoku-section-validator'; }
+      static get is() { return 'sudoku-block-validator'; }
       static get properties () {
         return {
           numbers: {
@@ -130,26 +212,32 @@
           useHexadecimal: {
             type: Boolean,
             value: false
+          },
+          isValid: {
+            type: Boolean,
+            value: true,
+            notify: true
           }
-        }
+        };
       }
       ready() {
         super.ready();
-        console.log('SudokuSectorValidator ready');
+        console.log('SudokuBlockValidator ready');
         // workaround for polymer 2 validators
-        new Polymer.IronMeta({type: 'validator', key: SudokuSectionValidator.is, value: this});
-      
+        new Polymer.IronMeta({type: 'validator', key: SudokuBlockValidator.is, value: this});
       }
       validate(value) {
-        console.log('validate section');
-        var numbers = this.get('numbers');
-        var hasNoDulicates = true;
-        var numbers = value.map(this._parse);
-        for (var i = 1; i <= numbers; i++) {
-          hasNoDuplicates = hasNoDulicates && (value.indexOf(i) == value.lastIndexOf(i));
+        console.log('validate block');
+        if (value) {
+          var numbers = this.get('numbers');
+          var newValue = this._parse(value);
+          var isValid = ! isNaN(newValue) && newValue > 0 && newValue <= numbers;
+          this.set('isValid', isValid);
+          return isValid;
+        } else {
+          this.set('isValid', isValid);
+          return true;
         }
-
-        return hasNoDulicates;
       }
       _parse(value) {
         var radix = 10;
@@ -162,7 +250,7 @@
       }
     }
 
-     window.customElements.define(SudokuSection.is, SudokuSection);
-     window.customElements.define(SudokuSectionValidator.is, SudokuSectionValidator);
+    window.customElements.define(SudokuBlock.is, SudokuBlock);
+    window.customElements.define(SudokuBlockValidator.is, SudokuBlockValidator);
   </script>
 </dom-module>
