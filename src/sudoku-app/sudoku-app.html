@@ -1,8 +1,8 @@
 <link rel="import" href="../../bower_components/polymer/polymer-element.html">
 <link rel="import" href="../start-menu/start-menu.html">
 <link rel="import" href="../sudoku-section/sudoku-section.html">
+<link rek="import" href="../sudoku-block/sudoku-block.html">
 
-<link rel="import" href="../sudoku-block/sudoku-block.html">
 <dom-module id="sudoku-app">
   <template>
     <style>
@@ -36,6 +36,10 @@
           },
           numbers: {
             type: Number
+          },
+          useHexadecimal: {
+            type: Boolean,
+            value: false
           },
           invalidRows: {
             type: Array,
