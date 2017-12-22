@@ -12,8 +12,17 @@
         @apply --layout-horizontal;
         @apply --layout-wrap;
       }
+      .size-2 {
+        width: 164px;
+      }
+      .size-3 {
+        width: 366px;
+      }
+      .size-4 {
+        width: 648px;
+      }
     </style>
-    <div class="board">
+    <div class="board size">
       <start-menu id="start-menu"></start-menu>
       <template is="dom-repeat" items="[[sections]]">
         <sudoku-section id="section-[[index]]" blocks="[[item]]" numbers$="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section>
@@ -35,7 +44,9 @@
             notify: true
           },
           numbers: {
-            type: Number
+            type: Number,
+            notify: true,
+            observer: '_resizeBoard'
           },
           useHexadecimal: {
             type: Boolean,
@@ -59,6 +70,22 @@
             bubbles: true,
             cancelable: true
           }));
+        }
+      }
+      _resizeBoard(newValue, oldValue) {
+        console.log('resize board');
+        switch (newValue) {
+          case 4:
+            Polymer.dom(this.root).querySelector('.board').classList.add('size-2');
+            break;
+          case 9:
+            Polymer.dom(this.root).querySelector('.board').classList.add('size-3');
+            break;
+          case 16:
+            Polymer.dom(this.root).querySelector('.board').classList.add('size-4');
+            break;
+          default:
+            break;
         }
       }
       getRandomInt(min, max) {
