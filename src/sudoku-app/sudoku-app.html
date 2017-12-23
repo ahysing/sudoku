@@ -27,7 +27,11 @@
       <start-menu id="start-menu"></start-menu>
       <end-menu id="end-menu"></end-menu>
       <template is="dom-repeat" items="[[sections]]">
-        <sudoku-section id="section-[[index]]" blocks="[[item]]" numbers$="[[numbers]]" use-hexadecimal="[[useHexadecimal]]"></sudoku-section>
+        <sudoku-section id="section-[[index]]"
+                        blocks="[[item]]"
+                        numbers$="[[numbers]]"
+                        use-hexadecimal="[[useHexadecimal]]">
+        </sudoku-section>
       </template>
     </div>
   </template>
@@ -93,19 +97,96 @@
       getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
-      setupEasy(sections, numbers) {
-        this.setupHard(sections, numbers);
+      setupEasy(sections, numbers, radix) {
+        this.setupHard(sections, numbers, radix);
       }
-      setupMedium(sections, numbers) {
-        this.setupHard(sections, numbers);
+      setupMedium(sections, numbers, radix) {
+        sections.forEach(section => {
+          var assigned = Array(numbers - 1).fill(true);
+          for (var i = 1; i <= numbers; i++) {
+            var idx = this.getRandomInt(0, numbers - 1);
+            if (assigned[idx]) {
+              section[idx] = i.toString(radix).toUpperCase();
+              assigned[i] = false;
+            }
+          }
+        });
+
+        var rowsAndColumns = Math.sqrt(numbers);
+
+        var rowFunc = function (id) {
+          return function(section, idx) {
+            return Math.floor(idx / rowsAndColumns) === id;
+          }
+        };
+        var colFunc = function (id) {
+          return function(section, idx) {
+            return (idx % rowsAndColumns) === id;
+          }
+        };
+        var mergeSections = function(sections) {
+          var xNoNull = sections.map(function(section) {
+            return section.filter(function(x) {
+              return x != null;
+            });
+          });
+          return[].concat.apply([], xNoNull);
+        }
+        for (var i = 0;  i < rowsAndColumns; i++) {
+          var sectionsHorizontal = sections.filter(rowFunc(i));
+          var sectionsVertical = sections.filter(colFunc(i));
+          for (var j = 0; j < rowsAndColumns; j++) {
+            var inserted;
+            var valuesInRow = sectionsHorizontal.filter(rowFunc(j));
+            var allValuesInRow = mergeSections(valuesInRow);
+            inserted = new Set(allValuesInRow);
+            inserted.delete(null);
+            if (inserted.size !== allValuesInRow.length) {
+              var removed = new Set(inserted);
+              sectionsHorizontal.forEach(function (section, k) {
+                for (var k = 0; k < rowsAndColumns; k++) {
+                  if (section[k] !== null)
+                  {
+                    if (removed.has(section[k]))
+                    {
+                      removed.delete(section[k]);
+                    } else {
+                      section[k] = null;
+                    }
+                  }
+                }
+              });
+            }
+
+            var valuesInCol = sectionsVertical.filter(colFunc(j));
+            var allValuesInCol = mergeSections(valuesInCol);
+            inserted = new Set(allValuesInCol);
+            inserted.delete(null);
+            if (inserted.size !== allValuesInCol.length) {
+              var removed = new Set(inserted);
+              sectionsVertical.forEach(function (section, k) {
+                for (var k = 0; k < rowsAndColumns; k++) {
+                  if (section[k] !== null)
+                  {
+                    if (removed.has(section[k]))
+                    {
+                      removed.delete(section[k]);
+                    } else {
+                      sections[k] = null;
+                    }
+                  }
+                }
+              });
+            }
+          }
+        }
       }
-      setupHard(sections, numbers) {
+      setupHard(sections, numbers, radix) {
         var sqrt = Math.sqrt(numbers);
         var indices = Array(numbers).fill(-1);
         var values = Array(numbers).fill(-1);
         var assignedRows = Array(sqrt).fill(true);
         var assignedColumns = Array(sqrt).fill(true);
-        
         var isEmptyRow = function (rows, idx) {
           var i = Math.floor(idx / sqrt);
           return rows[i];
@@ -126,38 +207,47 @@
           columns[i] = false;
         }
         
-        for (var i = 0; i < sqrt; i++) {
+        console.log("applying board");
+        for (var i = 0; i < numbers; i++) {
           var idx = -1;
           var value = -1;
           
           var emptyRow, emptyColumn;
+          var safeGuardIdx = 0;
           do {
             idx = this.getRandomInt(0, numbers - 1);
             emptyRow = isEmptyRow(assignedRows, idx);
             emptyColumn = isEmptyColumn(assignedRows, idx);
-          } while (!emptyRow || !emptyColumn);
-          fillRow(assignedRows, idx);
-          fillColumn(assignedColumns, idx);
-          indices[i] = idx;
+            safeGuardIdx ++;
+          } while (safeGuardIdx < numbers && (!emptyRow || !emptyColumn))
+          if (safeGuardIdx != numbers) {
+            fillRow(assignedRows, idx);
+            fillColumn(assignedColumns, idx);
+            indices[i] = idx;
+          }
 
+          var saveGuardValue = 0;
           do {
             value = this.getRandomInt(1, numbers);
-          } while (values.includes(value))
-          values[i] = value
+            saveGuardValue ++;
+          } while (saveGuardValue < numbers && values.includes(value))
+          if (saveGuardValue != numbers) {
+            values[i] = value;
+          }
         }
 
         for (var i = 0; i < numbers; i++) {
           var idx = indices[i];
           var value = values[i];
           if (value > 0) {
-            sections[i][idx] = value;
+            sections[i][idx] = value.toString(radix).toUpperCase();
           }
         }
       }
       setupGame(parameters) {
         const difficulty = parameters.difficulty;
         const numbers = parameters.numbers;
-
+        const radix = (parameters.useHexadecimal ? 16 : 10);
         var sections = new Array(numbers);
         for (var i = 0; i < numbers; i++) {
           sections[i] = new Array(numbers);
@@ -166,13 +256,13 @@
 
         switch (difficulty) {
           case 'Easy':
-            this.setupEasy(sections, numbers);
+            this.setupEasy(sections, numbers, radix);
             break;
           case 'Medium':
-            this.setupMedium(sections, numbers);
+            this.setupMedium(sections, numbers, radix);
             break;
           case 'Hard':
-            this.setupHard(sections, numbers);
+            this.setupHard(sections, numbers, radix);
             break;
           default:
             break;
@@ -190,7 +280,7 @@
       }
       handleSectionFilled(evt) {
         var sections = this.get('sections');
-        if (validate(sections)){
+        if (validate(sections)) {
 
         }
       }

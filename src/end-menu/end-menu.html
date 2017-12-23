@@ -37,20 +37,6 @@
       }
       static get properties() {
         return {
-          numbers: {
-            type: Number,
-            value: 9,
-            notify: true
-          },
-          difficulty: {
-            type: String,
-            value: "Medium",
-            notify: true
-          },
-          useHexadecimal: {
-            type: Boolean,
-            value: false
-          },
           open: {
             type: Boolean,
             notify: true
@@ -63,34 +49,22 @@
       ready () {
         super.ready();
         console.log("end-menu ready");
-        //this.set("open", true);
         this.addEventListener("openstartmenu", this.handleOpenEndMenu.bind(this));
       }
       handleOpenEndMenu(evt) {
         console.log("handleOpenEndMenu");
-        // TODO: use events not explicit calls.
         this.set("open", true);
       }
       handleConfirm (evt) {
-        console.log("handleConfirm", evt);
-        var numbers = parseInt(this.get("numbers"));
-        var difficulty = this.get("difficulty");
-        var useHexadecimal = this.get('useHexadecimal');
-        var startParameters = {
-          numbers: numbers,
-          difficulty: difficulty,
-          useHexadecimal: useHexadecimal
-        };
-
-        this.set("open", false);
-
-        console.log("closestartmenu", startParameters);
-        this.dispatchEvent(new CustomEvent("closestartmenu", {
-          detail: startParameters,
-          bubbles: true,
-          cancelable: true,
-          composed: true
-        }));
+        this.set('open', false);
+        var menu = Polymer.dom(this.root).querySelector('start-menu');
+        if (menu) {
+          menu.dispatchEvent(new CustomEvent('openstartmenu', {
+            detail: {},
+            bubbles: true,
+            cancelable: true
+          }));
+        }
       }
     }
 

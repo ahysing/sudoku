@@ -22,7 +22,14 @@
       }
     </style>
     <template is="dom-repeat" items="{{blocks}}" mutable-data>
-      <sudoku-block value="{{item}}" invalid$="[[hasInvalidSector]]" index="[[index]]" use-hexadecimal="[[useHexadecimal]]" numbers="[[numbers]]" auto-validate validate="sudoku-section-validator"></sudoku-block>
+      <sudoku-block value="{{item}}"
+                    invalid$="[[hasInvalidSector]]"
+                    index="[[index]]"
+                    use-hexadecimal="[[useHexadecimal]]"
+                    numbers="[[numbers]]"
+                    auto-validate
+                    validate="sudoku-section-validator">
+      </sudoku-block>
     </template>
   </template>
 
@@ -125,14 +132,29 @@
         text-align: center;
         font-size: 2.5em;
       }
-      
       :host([invalid]) {
         background: pink;
         @apply --sudoku-block-invalid-background;
       }
+      paper-input {
+       /* --paper-input-container-underline: {
+          display: none;
+       }*/
+       --paper-input-container-disabled: {
+         opacity: 1;
+       }
+       --paper-input-container-input-disabled: {
+         font-weight: bold;
+       }
+      }
     </style>
     <sudoku-block-validator numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]" is-valid="{{isValid}}"></sudoku-block-validator>
-    <paper-input class="block" no-label-float auto-validate validator="sudoku-block-validator" value="{{value}}">
+    <paper-input class="block"
+                 no-label-float
+                 auto-validate
+                 validator="sudoku-block-validator"
+                 value="{{value}}"
+                 disabled="[[readOnly]]">
     </paper-input>
   </template>
   
@@ -167,6 +189,10 @@
             useHexadecimal: {
               type: Boolean,
               value: false
+            },
+            readOnly: {
+              type: Boolean,
+              value: false
             }
           };
         }
@@ -177,6 +203,15 @@
         ready() {
           super.ready();
           console.log('ready');
+          var value = this.get('value');
+          this.set('readOnly', this._detectReadOnlyField(value));
+        }
+        _detectReadOnlyField(value) {
+          if (value) {
+            return true;
+          } else {
+            return false;
+          }
         }
         _signalBlockChange(newValue, oldValue) {
           console.log('block changed', oldValue, newValue);
