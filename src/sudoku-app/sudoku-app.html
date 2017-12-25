@@ -98,11 +98,14 @@
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
       setupEasy(sections, numbers, radix) {
-        this.setupHard(sections, numbers, radix);
+        this.setupMedium(sections, numbers, radix);
+        this.setupMedium(sections, numbers, radix);
       }
       setupMedium(sections, numbers, radix) {
         sections.forEach(section => {
-          var assigned = Array(numbers - 1).fill(true);
+          var assigned = section.map(function(x) {
+            return x === null;
+          });
           for (var i = 1; i <= numbers; i++) {
             var idx = this.getRandomInt(0, numbers - 1);
             if (assigned[idx]) {
@@ -172,7 +175,7 @@
                     {
                       removed.delete(section[k]);
                     } else {
-                      sections[k] = null;
+                      section[k] = null;
                     }
                   }
                 }
