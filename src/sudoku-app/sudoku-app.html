@@ -67,6 +67,10 @@
             type: Array,
             value: [],
             notify: true
+          },
+          wonGame: {
+            type: Boolean,
+            computed: '_hasWonGame(invalidRows, invalidCols, sections)'
           }
         };
       }
@@ -103,6 +107,17 @@
             break;
           default:
             break;
+        }
+      }
+      _hasWonGame(invalidRows, invalidCols, sections) {
+        if(invalidRows.length === 0 && invalidCols.length === 0) {
+          var allFilled = sections.every(sec => sec.every(value => value !== null));
+          if (allFilled) {
+            var validSections = sections.every(sec => this.isValid(sec));
+            return validSections;
+          }
+        } else {
+          return false;
         }
       }
       getRandomInt(min, max) {
