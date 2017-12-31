@@ -27,7 +27,7 @@
       <start-menu id="start-menu"></start-menu>
       <end-menu id="end-menu"></end-menu>
       <template is="dom-repeat" items="[[sections]]">
-        <sudoku-section id="section-[[index]]"
+        <sudoku-section section-id="[[index]]"
                         blocks="[[item]]"
                         numbers$="[[numbers]]"
                         use-hexadecimal="[[useHexadecimal]]">
@@ -57,8 +57,18 @@
           useHexadecimal: {
             type: Boolean,
             value: false
+          },
+          invalidRows: {
+            type: Array,
+            value: [],
+            notify: true
+          },
+          invalidCols: {
+            type: Array,
+            value: [],
+            notify: true
           }
-         };
+        };
       }
       constructor() {
         super();
@@ -68,7 +78,8 @@
         console.log('sudoku-app ready');
         
         this.addEventListener('closestartmenu', this.handleCloseStartMenu.bind(this));
-        this.addEventListener('sectionfilled', this.handleSectionFilled.bind(this));
+        this.addEventListener('sectionrowchanged', this.handleSectionRowChanged.bind(this));
+        this.addEventListener('sectioncolumnchanged', this.handleSectionColumnChanged.bind(this));
         var menu = Polymer.dom(this.root).querySelector('start-menu');
         if (menu) {
           menu.dispatchEvent(new CustomEvent('openstartmenu', {
@@ -102,31 +113,60 @@
         this.setupMedium(sections, numbers, radix);
       }
       setupMedium(sections, numbers, radix) {
-        sections.forEach(section => {
-          var assigned = section.map(function(x) {
-            return x === null;
-          });
-          for (var i = 1; i <= numbers; i++) {
-            var idx = this.getRandomInt(0, numbers - 1);
-            if (assigned[idx]) {
-              section[idx] = i.toString(radix).toUpperCase();
-              assigned[i] = false;
-            }
-          }
-        });
-
-        var rowsAndColumns = Math.sqrt(numbers);
-
-        var rowFunc = function (id) {
+        const rowsAndColumns = Math.sqrt(numbers);
+        const rowFunc = function (id) {
           return function(section, idx) {
             return Math.floor(idx / rowsAndColumns) === id;
           }
         };
-        var colFunc = function (id) {
+
+        const colFunc = function (id) {
           return function(section, idx) {
             return (idx % rowsAndColumns) === id;
           }
         };
+
+        var assignedSections = sections.map((section, sectionId) => {
+          return section.map(function(x) {
+            return x === null;
+          });
+        });
+
+        var assignedRows = Array(numbers).fill(Array(numbers));
+        var assignedColumns = Array(numbers).fill(Array(numbers));        
+        sections.forEach((section, sectionId) => {
+          for (var value = 1; value <= numbers; value++) {
+            var assigned = assignedSections[sectionId];
+            var idx = this.getRandomInt(0, numbers - 1);
+            if (assigned[idx]) {
+              var rowsInLine = assignedRows.filter(rowFunc(sectionId));
+              var colsInLine = assignedColumns.filter(colFunc(sectionId));
+              if (
+                rowsInLine.every(function(row, allignId)
+                {
+                  return row[value];
+                })
+                && colsInLine.every(function(col, allignId)
+                {
+                  return col[value];
+                })
+              ) {
+                section[idx] = value.toString(radix).toUpperCase();
+                
+                // remove all values in adjacent rows, columns and current section
+                assigned[value] = false;
+                for (var i = 0; i < rowsInLine.length; i++) {
+                  rowsInLine[value] = false
+                }
+
+                for (var i = 0; i < colsInLine.length; i++) {
+                  colsInLine[value] = false
+                }
+              }
+            }
+          }
+        });
+        /*
         var mergeSections = function(sections) {
           var xNoNull = sections.map(function(section) {
             return section.filter(function(x) {
@@ -183,6 +223,7 @@
             }
           }
         }
+        */
       }
       setupHard(sections, numbers, radix) {
         var sqrt = Math.sqrt(numbers);
@@ -281,11 +322,128 @@
         this.set('useHexadecimal', evt.detail.useHexadecimal);
         this.setupGame(evt.detail);
       }
-      handleSectionFilled(evt) {
-        var sections = this.get('sections');
-        if (validate(sections)) {
-
+      isValid(values) {
+        var numbers = this.get('numbers');
+        var hasNoDuplicates = true;
+        var ints = null;
+        if (this.get('useHexadecimal')) {
+          ints = values.map(this._parseHex);
+        } else {
+          ints = values.map(this._parseDec);
         }
+
+        for (var i = 1; i <= numbers; i++) {
+          hasNoDuplicates = hasNoDuplicates && (ints.indexOf(i) == ints.lastIndexOf(i));
+        }
+
+        return hasNoDuplicates;
+      }
+      _parseHex(value) {
+        var radix = 16;
+        var newValue = parseInt(value, radix);
+        return newValue;
+      }
+      _parseDec(value) {
+        var newValue = parseInt(value);
+        return newValue;
+      }
+      handleSectionRowChanged(evt) {
+        const sections = this.get('sections');
+        const numbers = this.get('numbers');
+        const row = this.extractAffectedRow(sections, numbers, evt.detail);
+        if (!this.isValid(row.values)) {
+          console.warn('failed row', row.values);
+          var ir = new Set(this.get('invalidRows'));
+          row.rowIds.forEach(x => ir.add(x));
+          this.set('invalidRows', Array.from(ir));
+        } else {
+          var ir = new Set(this.get('invalidRows'));
+          row.rowIds.forEach(x => ir.delete(x));
+          this.set('invalidRows', Array.from(ir));
+        }
+      }
+      handleSectionColumnChanged(evt) {
+        const sections = this.get('sections');
+        const numbers = this.get('numbers');
+        var column = this.extractAffectedColumn(sections, numbers, evt.detail);
+        if (!this.isValid(column.values)) {
+          console.warn('failed column', column.values);
+          var ic = new Set(this.get('invalidCols'));
+          column.colIds.forEach(x => ic.add(x));
+          this.set('invalidCols', Array.from(ic));
+        } else {
+          var ic = new Set(this.get('invalidCols'));
+          column.colIds.forEach(x => ic.delete(x));
+          this.set('invalidCols', Array.from(ic));
+        }
+      }
+      getValueAndIndex(x, i) {
+        return {
+          value: x,
+          i: i
+        };
+      }
+      extractAffectedRow (sections, numbers, inputEvent) {
+        const sectionFunc = function (id, rowsAndColumns) {
+          const row = Math.floor(id / rowsAndColumns);
+          return function(_, i) {
+            return Math.floor(i / rowsAndColumns) === row;
+          }
+        };
+        
+        const sectionId = inputEvent.sectionId;
+        const rowsAndColumns = Math.sqrt(numbers);
+        const affectedSections = sections.map(this.getValueAndIndex).filter(sectionFunc(sectionId, rowsAndColumns));
+        const rowIds = Array.from(Array(rowsAndColumns)).map((_, i) => i + inputEvent.rowId * rowsAndColumns);
+        var initial = {
+          rowIds: rowIds,
+          values: []
+        };
+
+        const row = affectedSections.reduce(function(accumulator, sec) {
+          sec.value.forEach(function(x, i) {
+            if (rowIds.includes(i)){
+                if (x !== null) {
+                accumulator.values.push(x);
+              }
+            }
+          });
+
+          return accumulator;
+        }, initial);
+
+        return row;
+      }
+      extractAffectedColumn(sections, numbers, inputEvent) {
+        const sectionFunc = function (id, rowsAndColumns) {
+          const column = (id % rowsAndColumns);
+          return function(_, i) {
+            return (i % rowsAndColumns) === column;
+          }
+        };
+
+        const sectionId = inputEvent.sectionId;
+        const rowsAndColumns = Math.sqrt(numbers);
+        const affectedSections = sections.map(this.getValueAndIndex).filter(sectionFunc(sectionId, rowsAndColumns));
+        const colIds = Array.from(Array(rowsAndColumns)).map((_, i) => inputEvent.columnId + i * rowsAndColumns);
+        var initial = {
+          colIds: colIds,
+          values: []
+        };
+
+        const column = affectedSections.reduce(function(accumulator, sec) {
+          sec.value.forEach(function(x, i) {
+            if (colIds.includes(i)) {
+              if (x !== null) {
+                accumulator.values.push(x);
+              }
+            }
+          });
+
+          return accumulator;
+        }, initial);
+          
+        return column;
       }
     }
 

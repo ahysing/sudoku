@@ -23,7 +23,9 @@
     </style>
     <template is="dom-repeat" items="{{blocks}}" mutable-data>
       <sudoku-block value="{{item}}"
-                    invalid$="[[hasInvalidSector]]"
+                    is-invalid-section$="{{isInvalidSection}}"
+                    is-invalid-row$="[[isInvalidRow]]"
+                    is-invalid-col$="[[isInvalidCol]]"
                     index="[[index]]"
                     use-hexadecimal="[[useHexadecimal]]"
                     numbers="[[numbers]]"
@@ -46,42 +48,101 @@
                 type: Array,
                 value: [],
                 notify: true,
-                observer: '_signalSectorChange'
+                observer: '_signalSectionChange'
               },
               numbers: {
-                type: Number,
-                value: 9
+                type: Number
+              },
+              sectionId: {
+                type: Number
               },
               useHexadecimal: {
                 type: Boolean,
                 value: false
               },
-              hasInvalidSector: {
+              invalidRows: {
+                type: Array,
+                value: [],
+                notify: true
+              },
+              invalidCols: {
+                type: Array,
+                value: [],
+                notify: true
+              },
+              isInvalidSection: {
                 type: Boolean,
                 value: false,
                 notify: true
-              }
+              },
+              isInvalidRow: {
+                type: Boolean,
+                computed: '_isInvalidRow(invalidRows)'
+              },
+              isInvalidCol: {
+                type: Boolean,
+                computed: '_isInvalidColumn(invalidCols)'
+              },
           };
       }
-      _signalSectorChange(newValue, oldValue) {
-        console.log('Sector changed: ', oldValue, newValue);
-        if (newValue !== oldValue) {
-        }
+      constructor() {
+        super();
+        console.log('constructor');
+      }
+      ready() {
+        super.ready();
+        console.log('ready');
+        this.addEventListener('inputadded', this.handleInputAdded.bind(this));
+        this.addEventListener('rowchanged', this.handleRowChanged.bind(this));
+        this.addEventListener('columnchanged', this.handleColumnChanged.bind(this));
+      }
+      _signalSectionChange(newValue, oldValue) {
+        console.log('_signalSectionChange', oldValue, newValue);
+      }
+      _isInvalidRow(invalidRows) {
+        console.log('_isInvalidRow section', );
+      }
+      _isInvalidColumn(invalidCols) {
+        console.log('_isInvalidCol section', );
       }
       handleInputAdded (evt) {
-        console.log('letter added', evt);
+        console.log('input added', evt.detail);
         this.set('blocks.' + evt.detail.index, evt.detail.value);
         var blocks = this.get('blocks');
-        if (!this.validate(blocks)) {
-          console.warn('failed', blocks);
-          this.set('hasInvalidSector', true);
+        if (!this.validateSection(blocks)) {
+          console.warn('failed section', blocks);
+          this.set('isInvalidSection', true);
         } else {
-
-          this.set('hasInvalidSector', false);
+          this.set('isInvalidSection', false);
         }
       }
-      validate(values) { // TODO: remove
-        console.log('validate section');
+      handleRowChanged(evt) {
+        var sectionId = this.get('sectionId');
+        
+        var detail = evt.detail;
+        detail.sectionId = sectionId;
+        
+        this.dispatchEvent(new CustomEvent('sectionrowchanged', {
+              detail: detail,
+              bubbles: true,
+              cancelable: true,
+              composed: true
+            }));
+      }
+      handleColumnChanged(evt) {
+        var sectionId = this.get('sectionId');
+        
+        var detail = evt.detail;
+        detail.sectionId = sectionId;
+        
+        this.dispatchEvent(new CustomEvent('sectioncolumnchanged', {
+              detail: detail,
+              bubbles: true,
+              cancelable: true,
+              composed: true
+            }));
+      }
+      validateSection(values) {
         var numbers = this.get('numbers');
         var hasNoDuplicates = true;
         var ints = null;
@@ -98,22 +159,13 @@
         return hasNoDuplicates;
       }
       _parseHex(value) {
-        var radix = 10;
+        var radix = 16;
         var newValue = parseInt(value, radix);
         return newValue;
       }
       _parseDec(value) {
         var newValue = parseInt(value);
         return newValue;
-      }
-      constructor() {
-        super();
-        console.log('constructor');
-      }
-      ready() {
-        super.ready();
-        console.log('ready');
-        this.addEventListener('inputadded', this.handleInputAdded.bind(this));
       }
     }
 
@@ -132,7 +184,14 @@
         text-align: center;
         font-size: 2.5em;
       }
-      :host([invalid]) {
+      /* TODO: not working */
+      paper-input:focus {
+        color: blue;
+      }
+      :host([is-invalid-section]) 
+      :host([invalid-row])
+      :host([invalid-col])
+      {
         background: pink;
         @apply --sudoku-block-invalid-background;
       }
@@ -148,7 +207,10 @@
        }
       }
     </style>
-    <sudoku-block-validator numbers="[[numbers]]" use-hexadecimal="[[useHexadecimal]]" is-valid="{{isValid}}"></sudoku-block-validator>
+    <sudoku-block-validator numbers="[[numbers]]"
+                            use-hexadecimal="[[useHexadecimal]]"
+                            is-valid="{{isValidBlock}}">
+    </sudoku-block-validator>
     <paper-input class="block"
                  no-label-float
                  auto-validate
@@ -173,18 +235,32 @@
               notify: true,
               observer: '_signalBlockChange'
             },
-            isValid: {
+            isInvalidSection: {
               type: Boolean,
-              value: true,
-              notify: true,
+              value: false,
+              notify: true
+            },
+            isInvalidRow: {
+              type: Boolean,
+              computed: '_isInvalidRow(invalidRows)'
+            },
+            isInvalidCol: {
+              type: Boolean,
+              computed: '_isInvalidColumn(invalidCols)'
+            },
+            invalidRows: {
+              type: Array,
+              value: []
+            },
+            invalidCols: {
+              type: Array,
+              value: []
             },
             index: {
-              type: Number,
-              value: -1
+              type: Number
             },
             numbers: {
-              type: Number,
-              value: 0
+              type: Number
             },
             useHexadecimal: {
               type: Boolean,
@@ -192,7 +268,7 @@
             },
             readOnly: {
               type: Boolean,
-              value: false
+              readOnly: true
             }
           };
         }
@@ -204,9 +280,11 @@
           super.ready();
           console.log('ready');
           var value = this.get('value');
-          this.set('readOnly', this._detectReadOnlyField(value));
+          var readOnly = this._detectReadOnlyField(value);
+          this.set('readOnly', readOnly);
         }
         _detectReadOnlyField(value) {
+          console.log('_detectReadOnlyField(value)', value);
           if (value) {
             return true;
           } else {
@@ -214,26 +292,63 @@
           }
         }
         _signalBlockChange(newValue, oldValue) {
-          console.log('block changed', oldValue, newValue);
-          var isValid = this.get('isValid');
+          console.log('_signalBlockChange', oldValue, newValue);
+          const numbers = this.get('numbers');
+          const rowsAndColumns = Math.sqrt(numbers);
+          const isValid = this.get('isValidBlock');
           if (isValid || isValid === undefined) {
             var value = this.get('value');
             var index = this.get('index');
             var blockParameters = {
               index: index,
               value: value
-            }
+            };
 
-            var event = 'inputadded';
-
-            this.dispatchEvent(new CustomEvent(event, {
+            this.dispatchEvent(new CustomEvent('inputadded', {
               detail: blockParameters,
+              bubbles: true,
+              cancelable: true,
+              composed: true
+            }));
+
+            const rowId = Math.floor(index / rowsAndColumns); 
+            const columnId = (index % rowsAndColumns);
+
+            var rowParameters = {
+              rowId: rowId,
+              value: value
+            };
+
+            this.dispatchEvent(new CustomEvent('rowchanged', {
+              detail: rowParameters,
+              bubbles: true,
+              cancelable: true,
+              composed: true
+            }));
+            
+            var columnParameters = {
+              columnId: columnId,
+              value: value
+            };
+
+            this.dispatchEvent(new CustomEvent('columnchanged', {
+              detail: columnParameters,
               bubbles: true,
               cancelable: true,
               composed: true
             }));
           }
         }
+      _isInvalidRow(invalidRows) {
+        console.log('_isInvalidRow');
+        var index = this.get('index');
+        return invalidRows.includes(index);
+      }
+      _isInvalidColumn(invalidCols) {
+        console.log('_isInvalidCol');
+        var index = this.get('index');
+        return invalidCols.includes(index);  
+      }
     }
 
     class SudokuBlockValidator extends Polymer.mixinBehaviors([Polymer.IronValidatorBehavior, Polymer.MutableData],
@@ -263,7 +378,7 @@
         new Polymer.IronMeta({type: 'validator', key: SudokuBlockValidator.is, value: this});
       }
       validate(value) {
-        console.log('validate block');
+        // console.log('validate block');
         if (value) {
           var numbers = this.get('numbers');
           var newValue = this._parse(value);
