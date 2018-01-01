@@ -24,8 +24,8 @@
     <template is="dom-repeat" items="{{blocks}}" mutable-data>
       <sudoku-block value="{{item}}"
                     is-invalid-section$="{{isInvalidSection}}"
-                    is-invalid-row$="[[isInvalidRow]]"
-                    is-invalid-col$="[[isInvalidCol]]"
+                    invalid-rows="[[invalidRows]]"
+                    invalid-cols="[[invalidCols]]"
                     index="[[index]]"
                     use-hexadecimal="[[useHexadecimal]]"
                     numbers="[[numbers]]"
@@ -74,15 +74,7 @@
                 type: Boolean,
                 value: false,
                 notify: true
-              },
-              isInvalidRow: {
-                type: Boolean,
-                computed: '_isInvalidRow(invalidRows)'
-              },
-              isInvalidCol: {
-                type: Boolean,
-                computed: '_isInvalidColumn(invalidCols)'
-              },
+              }
           };
       }
       constructor() {
@@ -99,12 +91,7 @@
       _signalSectionChange(newValue, oldValue) {
         console.log('_signalSectionChange', oldValue, newValue);
       }
-      _isInvalidRow(invalidRows) {
-        console.log('_isInvalidRow section', );
-      }
-      _isInvalidColumn(invalidCols) {
-        console.log('_isInvalidCol section', );
-      }
+      
       handleInputAdded (evt) {
         console.log('input added', evt.detail);
         this.set('blocks.' + evt.detail.index, evt.detail.value);
@@ -189,8 +176,8 @@
         color: blue;
       }
       :host([is-invalid-section]) 
-      :host([invalid-row])
-      :host([invalid-col])
+      :host([is-in-invalid-row])
+      :host([is-in-invalid-col])
       {
         background: pink;
         @apply --sudoku-block-invalid-background;
@@ -226,128 +213,129 @@
      * @polymer
      */
     class SudokuBlock extends Polymer.Element {
-        static get is() { return 'sudoku-block'; }
-        static get properties () {
-          return {
-            value: {
-              type: Number,
-              value: null,
-              notify: true,
-              observer: '_signalBlockChange'
-            },
-            isInvalidSection: {
-              type: Boolean,
-              value: false,
-              notify: true
-            },
-            isInvalidRow: {
-              type: Boolean,
-              computed: '_isInvalidRow(invalidRows)'
-            },
-            isInvalidCol: {
-              type: Boolean,
-              computed: '_isInvalidColumn(invalidCols)'
-            },
-            invalidRows: {
-              type: Array,
-              value: []
-            },
-            invalidCols: {
-              type: Array,
-              value: []
-            },
-            index: {
-              type: Number
-            },
-            numbers: {
-              type: Number
-            },
-            useHexadecimal: {
-              type: Boolean,
-              value: false
-            },
-            readOnly: {
-              type: Boolean,
-              readOnly: true
-            }
-          };
-        }
-        constructor() {
-          super();
-          console.log('constructor');
-        }
-        ready() {
-          super.ready();
-          console.log('ready');
-          var value = this.get('value');
-          var readOnly = this._detectReadOnlyField(value);
-          this.set('readOnly', readOnly);
-        }
-        _detectReadOnlyField(value) {
-          console.log('_detectReadOnlyField(value)', value);
-          if (value) {
-            return true;
-          } else {
-            return false;
+      static get is() { return 'sudoku-block'; }
+      static get properties ()
+      {
+        return {
+          value: {
+            type: Number,
+            notify: true,
+            observer: '_signalBlockChange'
+          },
+          isInvalidSection: {
+            type: Boolean,
+            value: false
+          },
+          isInInvalidRow: {
+            type: Boolean,
+            computed: '_isInInvalidRow(invalidRows, index, numbers)'
+          },
+          isInInvalidColumn: {
+            type: Boolean,
+            computed: '_isInInvalidColumn(invalidCols, index, numbers)'
+          },
+          isValidBlock: {
+            type: Boolean
+          },
+          invalidRows: {
+            type: Array,
+            value: []
+          },
+          invalidCols: {
+            type: Array,
+            value: []
+          },
+          index: {
+            type: Number
+          },
+          numbers: {
+            type: Number
+          },
+          useHexadecimal: {
+            type: Boolean,
+            value: false
+          },
+          readOnly: {
+            type: Boolean
           }
-        }
-        _signalBlockChange(newValue, oldValue) {
-          console.log('_signalBlockChange', oldValue, newValue);
-          const numbers = this.get('numbers');
-          const rowsAndColumns = Math.sqrt(numbers);
-          const isValid = this.get('isValidBlock');
-          if (isValid || isValid === undefined) {
-            var value = this.get('value');
-            var index = this.get('index');
-            var blockParameters = {
-              index: index,
-              value: value
-            };
-
-            this.dispatchEvent(new CustomEvent('inputadded', {
-              detail: blockParameters,
-              bubbles: true,
-              cancelable: true,
-              composed: true
-            }));
-
-            const rowId = Math.floor(index / rowsAndColumns); 
-            const columnId = (index % rowsAndColumns);
-
-            var rowParameters = {
-              rowId: rowId,
-              value: value
-            };
-
-            this.dispatchEvent(new CustomEvent('rowchanged', {
-              detail: rowParameters,
-              bubbles: true,
-              cancelable: true,
-              composed: true
-            }));
-            
-            var columnParameters = {
-              columnId: columnId,
-              value: value
-            };
-
-            this.dispatchEvent(new CustomEvent('columnchanged', {
-              detail: columnParameters,
-              bubbles: true,
-              cancelable: true,
-              composed: true
-            }));
-          }
-        }
-      _isInvalidRow(invalidRows) {
-        console.log('_isInvalidRow');
-        var index = this.get('index');
-        return invalidRows.includes(index);
+        };
       }
-      _isInvalidColumn(invalidCols) {
-        console.log('_isInvalidCol');
-        var index = this.get('index');
-        return invalidCols.includes(index);  
+      constructor() {
+        super();
+        console.log('constructor');
+      }
+      ready() {
+        super.ready();
+        console.log('ready');
+        var value = this.get('value');
+        var readOnly = this._detectReadOnlyField(value);
+        this.set('readOnly', readOnly);
+      }
+      _isInInvalidRow(invalidRows, index, numbers) {
+        var val = Array.isArray(invalidRows) && invalidRows && invalidRows.includes(Math.floor(index / Math.sqrt(numbers)));
+        console.log('_isInInvalidRow', invalidRows, val);
+        return val;
+      }
+      _isInInvalidColumn(invalidCols, index, numbers) {
+        var val = Array.isArray(invalidCols) && invalidCols && invalidCols.includes(index % Math.sqrt(numbers));
+        console.log('_isInInvalidColumn', invalidCols, val);
+        return true;
+      }
+      _detectReadOnlyField(value) {
+        console.log('_detectReadOnlyField(value)', value);
+        if (value) {
+          return true;
+        } else {
+          return false;
+        }
+      }
+      _signalBlockChange(newValue, oldValue) {
+        console.log('_signalBlockChange', oldValue, newValue);
+        const numbers = this.get('numbers');
+        const rowsAndColumns = Math.sqrt(numbers);
+        const isValid = this.get('isValidBlock');
+        if (isValid || isValid === undefined) {
+          var value = this.get('value');
+          var index = this.get('index');
+          var blockParameters = {
+            index: index,
+            value: value
+          };
+
+          this.dispatchEvent(new CustomEvent('inputadded', {
+            detail: blockParameters,
+            bubbles: true,
+            cancelable: true,
+            composed: true
+          }));
+
+          const rowId = Math.floor(index / rowsAndColumns); 
+          const columnId = (index % rowsAndColumns);
+
+          var rowParameters = {
+            rowId: rowId,
+            value: value
+          };
+
+          this.dispatchEvent(new CustomEvent('rowchanged', {
+            detail: rowParameters,
+            bubbles: true,
+            cancelable: true,
+            composed: true
+          }));
+          
+          var columnParameters = {
+            columnId: columnId,
+            value: value
+          };
+
+          this.dispatchEvent(new CustomEvent('columnchanged', {
+            detail: columnParameters,
+            bubbles: true,
+            cancelable: true,
+            composed: true
+          }));
+        }
       }
     }
 

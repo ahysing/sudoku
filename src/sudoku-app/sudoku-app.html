@@ -23,13 +23,15 @@
         width: 648px;
       }
     </style>
-    <div class="board size">
+    <div class="board">
       <start-menu id="start-menu"></start-menu>
-      <end-menu id="end-menu"></end-menu>
+      <end-menu id="end-menu" open="[[wonGame]]"></end-menu>
       <template is="dom-repeat" items="[[sections]]">
         <sudoku-section section-id="[[index]]"
-                        blocks="[[item]]"
-                        numbers$="[[numbers]]"
+                        blocks="[[item.values]]"
+                        numbers="[[numbers]]"
+                        invalid-rows$="[[item.invalidRows]]"
+                        invalid-cols$="[[item.invalidCols]]"
                         use-hexadecimal="[[useHexadecimal]]">
         </sudoku-section>
       </template>
@@ -58,11 +60,6 @@
             type: Boolean,
             value: false
           },
-          invalidRows: {
-            type: Array,
-            value: [],
-            notify: true
-          },
           invalidCols: {
             type: Array,
             value: [],
@@ -70,7 +67,7 @@
           },
           wonGame: {
             type: Boolean,
-            computed: '_hasWonGame(invalidRows, invalidCols, sections)'
+            computed: '_hasWonGame(sections)'
           }
         };
       }
@@ -94,23 +91,33 @@
         }
       }
       _resizeBoard(newValue, oldValue) {
-        console.log('resize board');
         switch (newValue) {
           case 4:
-            Polymer.dom(this.root).querySelector('.board').classList.add('size-2');
+            var elem = Polymer.dom(this.root).querySelector('.board');
+            elem.classList.remove('size-3');
+            elem.classList.remove('size-4');
+             elem.classList.add('size-2');
             break;
           case 9:
-            Polymer.dom(this.root).querySelector('.board').classList.add('size-3');
+            var elem = Polymer.dom(this.root).querySelector('.board');
+            elem.classList.remove('size-2');
+            elem.classList.remove('size-4');
+            elem.classList.add('size-3');
             break;
           case 16:
-            Polymer.dom(this.root).querySelector('.board').classList.add('size-4');
-            break;
+            var elem = Polymer.dom(this.root).querySelector('.board');
+            elem.classList.remove('size-2');
+            elem.classList.remove('size-3');
+            elem.classList.add('size-4');
+          break;
           default:
             break;
         }
       }
-      _hasWonGame(invalidRows, invalidCols, sections) {
-        if(invalidRows.length === 0 && invalidCols.length === 0) {
+      _hasWonGame(sections) {
+        var invalidRows = sections.invalidRows;
+        var invalidCols = sections.invalidCols;
+        if(invalidRows && invalidCols && invalidRows.length === 0 && invalidCols.length === 0) {
           var allFilled = sections.every(sec => sec.every(value => value !== null));
           if (allFilled) {
             var validSections = sections.every(sec => this.isValid(sec));
@@ -141,17 +148,20 @@
           }
         };
 
-        var assignedSections = sections.map((section, sectionId) => {
-          return section.map(function(x) {
+        var assignedValues = new Array(numbers);
+        for (var i = 0; i < sections.length; i++) {
+          var sec = sections[i];
+          var values = sec.values;
+          assignedValues[i] = values.map(function(x) {
             return x === null;
           });
-        });
+        }
 
         var assignedRows = Array(numbers).fill(Array(numbers));
         var assignedColumns = Array(numbers).fill(Array(numbers));        
         sections.forEach((section, sectionId) => {
           for (var value = 1; value <= numbers; value++) {
-            var assigned = assignedSections[sectionId];
+            var assigned = assignedValues[sectionId];
             var idx = this.getRandomInt(0, numbers - 1);
             if (assigned[idx]) {
               var rowsInLine = assignedRows.filter(rowFunc(sectionId));
@@ -166,7 +176,7 @@
                   return col[value];
                 })
               ) {
-                section[idx] = value.toString(radix).toUpperCase();
+                section.values[idx] = value.toString(radix).toUpperCase();
                 
                 // remove all values in adjacent rows, columns and current section
                 assigned[value] = false;
@@ -309,8 +319,11 @@
         const radix = (parameters.useHexadecimal ? 16 : 10);
         var sections = new Array(numbers);
         for (var i = 0; i < numbers; i++) {
-          sections[i] = new Array(numbers);
-          sections[i].fill(null);
+          sections[i] = {
+            values: new Array(numbers).fill(null),
+            invalidRows: [],
+            invalidCols: []
+          };
         }
 
         switch (difficulty) {
@@ -368,13 +381,23 @@
         const row = this.extractAffectedRow(sections, numbers, evt.detail);
         if (!this.isValid(row.values)) {
           console.warn('failed row', row.values);
-          var ir = new Set(this.get('invalidRows'));
-          row.rowIds.forEach(x => ir.add(x));
-          this.set('invalidRows', Array.from(ir));
+          for (var it = 0; it < row.sectionIds.length; it++) {
+            var i = row.sectionIds[it];
+            var irArr = this.get(['sections', i, 'invalidRows']);
+            var ir = new Set(irArr);
+            if (ir.add(row.rowId)) {  
+              this.set(['sections', i, 'invalidRows'], Array.from(ir));
+            }
+          }
         } else {
-          var ir = new Set(this.get('invalidRows'));
-          row.rowIds.forEach(x => ir.delete(x));
-          this.set('invalidRows', Array.from(ir));
+          for (var it = 0; it < row.sectionIds.length; it++) {
+            var i = row.sectionIds[it];
+            var irArr = this.get(['sections', i, 'invalidRows']);
+            var ir = new Set(irArr);
+            if (ir.delete(row.rowId)) {  
+              this.set(['sections', i, 'invalidRows'], Array.from(ir));
+            }
+          }
         }
       }
       handleSectionColumnChanged(evt) {
@@ -383,18 +406,28 @@
         var column = this.extractAffectedColumn(sections, numbers, evt.detail);
         if (!this.isValid(column.values)) {
           console.warn('failed column', column.values);
-          var ic = new Set(this.get('invalidCols'));
-          column.colIds.forEach(x => ic.add(x));
-          this.set('invalidCols', Array.from(ic));
+          for (var it = 0; it < column.sectionIds.length; it++) {
+            var i = column.sectionIds[it];
+            var icArr = this.get(['sections', i, 'invalidCols']);
+            var ic = new Set(icArr);
+            if (ic.add(column.columnId)) {  
+              this.set(['sections', i, 'invalidCols'], Array.from(ic));
+            }
+          }
         } else {
-          var ic = new Set(this.get('invalidCols'));
-          column.colIds.forEach(x => ic.delete(x));
-          this.set('invalidCols', Array.from(ic));
+          for (var it = 0; it < column.sectionIds.length; it++) {
+            var i = column.sectionIds[it];
+            var icArr = this.get(['sections', i, 'invalidCols']);
+            var ic = new Set(icArr);
+            if (ic.delete(column.columnId)) {  
+              this.set(['sections', i, 'invalidCols'], Array.from(ic));
+            }
+          };
         }
       }
       getValueAndIndex(x, i) {
         return {
-          value: x,
+          instance: x,
           i: i
         };
       }
@@ -409,15 +442,17 @@
         const sectionId = inputEvent.sectionId;
         const rowsAndColumns = Math.sqrt(numbers);
         const affectedSections = sections.map(this.getValueAndIndex).filter(sectionFunc(sectionId, rowsAndColumns));
-        const rowIds = Array.from(Array(rowsAndColumns)).map((_, i) => i + inputEvent.rowId * rowsAndColumns);
+        const rowIndices = Array.from(Array(rowsAndColumns)).map((_, i) => i + inputEvent.rowId * rowsAndColumns);
         var initial = {
-          rowIds: rowIds,
+          rowId: inputEvent.rowId,
+          sectionIds: [],
           values: []
         };
 
         const row = affectedSections.reduce(function(accumulator, sec) {
-          sec.value.forEach(function(x, i) {
-            if (rowIds.includes(i)){
+          accumulator.sectionIds.push(sec.i);
+          sec.instance.values.forEach(function(x, i) {
+            if (rowIndices.includes(i)) {
                 if (x !== null) {
                 accumulator.values.push(x);
               }
@@ -440,15 +475,17 @@
         const sectionId = inputEvent.sectionId;
         const rowsAndColumns = Math.sqrt(numbers);
         const affectedSections = sections.map(this.getValueAndIndex).filter(sectionFunc(sectionId, rowsAndColumns));
-        const colIds = Array.from(Array(rowsAndColumns)).map((_, i) => inputEvent.columnId + i * rowsAndColumns);
+        const blockIndices = Array.from(Array(rowsAndColumns)).map((_, i) => inputEvent.columnId + i * rowsAndColumns);
         var initial = {
-          colIds: colIds,
+          columnId: inputEvent.columnId,
+          sectionIds: [],
           values: []
         };
 
         const column = affectedSections.reduce(function(accumulator, sec) {
-          sec.value.forEach(function(x, i) {
-            if (colIds.includes(i)) {
+          accumulator.sectionIds.push(sec.i);
+          sec.instance.values.forEach(function(x, i) {
+            if (blockIndices.includes(i)) {
               if (x !== null) {
                 accumulator.values.push(x);
               }
