@@ -147,120 +147,53 @@
         this.setupMedium(sections, numbers, radix);
       }
       setupMedium(sections, numbers, radix) {
-        const rowsAndColumns = Math.sqrt(numbers);
-        const rowFunc = function (id) {
-          return function(section, idx) {
-            return Math.floor(idx / rowsAndColumns) === id;
-          }
-        };
-
-        const colFunc = function (id) {
-          return function(section, idx) {
-            return (idx % rowsAndColumns) === id;
-          }
-        };
-
-        var assignedValues = new Array(numbers);
+        var assignedIndicesSections = new Array(numbers).fill(Array(numbers + 1).fill(true));
         for (var i = 0; i < sections.length; i++) {
           var sec = sections[i];
           var values = sec.values;
-          assignedValues[i] = values.map(function(x) {
-            return x === null;
+          values.forEach(function(x) {
+            var value = parseInt(x, radix);
+            sec[value] = false;
           });
         }
-
-        var assignedRows = Array(numbers).fill(Array(numbers));
-        var assignedColumns = Array(numbers).fill(Array(numbers));        
+        const rowsAndColumns = Math.sqrt(numbers);
+        var assignedRows = Array(numbers).fill(Array(numbers + 1).fill(true));
+        var assignedColumns = Array(numbers).fill(Array(numbers + 1).fill(true));    
+        for (var sectionId = 0; sectionId < sections.length; sectionId++) {
+          for (var idx = 0; idx < numbers; idx++) {
+            var rowId = (Math.floor(sectionId / rowsAndColumns) * rowsAndColumns)
+                      + (Math.floor(idx / rowsAndColumns));
+            var colId = (sectionId % rowsAndColumns) * rowsAndColumns
+                      + (idx % rowsAndColumns);
+            var value = parseInt(sections[sectionId][idx], radix);
+            assignedRows[rowId][value] = false;
+            assignedColumns[colId][value] = false; 
+          }
+        }
+        
         sections.forEach((section, sectionId) => {
-          for (var value = 1; value <= numbers; value++) {
-            var assigned = assignedValues[sectionId];
+          var assignedIndicesSection = assignedIndicesSections[sectionId];
+          for (var i = 1; i <= numbers / 3; i++) {
             var idx = this.getRandomInt(0, numbers - 1);
-            if (assigned[idx]) {
-              var rowsInLine = assignedRows.filter(rowFunc(sectionId));
-              var colsInLine = assignedColumns.filter(colFunc(sectionId));
-              if (
-                rowsInLine.every(function(row, allignId)
-                {
-                  return row[value];
-                })
-                && colsInLine.every(function(col, allignId)
-                {
-                  return col[value];
-                })
-              ) {
+            var value = this.getRandomInt(1, numbers);
+            if (assignedIndicesSection[value]) {
+              var rowId = (Math.floor(sectionId / rowsAndColumns) * rowsAndColumns)
+                        + (Math.floor(idx / rowsAndColumns));
+
+              var colId = (sectionId % rowsAndColumns) * rowsAndColumns
+                        + (idx % rowsAndColumns);
+              if (assignedRows[rowId][value] && assignedColumns[colId][value]) {
+
                 section.values[idx] = value.toString(radix).toUpperCase();
                 
                 // remove all values in adjacent rows, columns and current section
-                assigned[value] = false;
-                for (var i = 0; i < rowsInLine.length; i++) {
-                  rowsInLine[value] = false
-                }
-
-                for (var i = 0; i < colsInLine.length; i++) {
-                  colsInLine[value] = false
-                }
+                assignedIndicesSection[value] = false;
+                assignedRows[rowId][value] = false;
+                assignedColumns[colId][value] = false;
               }
             }
           }
         });
-        /*
-        var mergeSections = function(sections) {
-          var xNoNull = sections.map(function(section) {
-            return section.filter(function(x) {
-              return x != null;
-            });
-          });
-          return[].concat.apply([], xNoNull);
-        }
-        for (var i = 0;  i < rowsAndColumns; i++) {
-          var sectionsHorizontal = sections.filter(rowFunc(i));
-          var sectionsVertical = sections.filter(colFunc(i));
-          for (var j = 0; j < rowsAndColumns; j++) {
-            var inserted;
-            var valuesInRow = sectionsHorizontal.filter(rowFunc(j));
-            var allValuesInRow = mergeSections(valuesInRow);
-            inserted = new Set(allValuesInRow);
-            inserted.delete(null);
-            if (inserted.size !== allValuesInRow.length) {
-              var removed = new Set(inserted);
-              sectionsHorizontal.forEach(function (section, k) {
-                for (var k = 0; k < rowsAndColumns; k++) {
-                  if (section[k] !== null)
-                  {
-                    if (removed.has(section[k]))
-                    {
-                      removed.delete(section[k]);
-                    } else {
-                      section[k] = null;
-                    }
-                  }
-                }
-              });
-            }
-
-            var valuesInCol = sectionsVertical.filter(colFunc(j));
-            var allValuesInCol = mergeSections(valuesInCol);
-            inserted = new Set(allValuesInCol);
-            inserted.delete(null);
-            if (inserted.size !== allValuesInCol.length) {
-              var removed = new Set(inserted);
-              sectionsVertical.forEach(function (section, k) {
-                for (var k = 0; k < rowsAndColumns; k++) {
-                  if (section[k] !== null)
-                  {
-                    if (removed.has(section[k]))
-                    {
-                      removed.delete(section[k]);
-                    } else {
-                      section[k] = null;
-                    }
-                  }
-                }
-              });
-            }
-          }
-        }
-        */
       }
       setupHard(sections, numbers, radix) {
         var sqrt = Math.sqrt(numbers);
