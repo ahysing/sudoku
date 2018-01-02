@@ -7,29 +7,40 @@
     <style is="custom-style">
       :host {
         display: block;
-        }
+      }
       .board {
         border: 3px solid black;
         @apply --layout-horizontal;
         @apply --layout-wrap;
       }
-      .size-2 {
+      .board-4 {
         width: 164px;
       }
-      .size-3 {
+      .board-9 {
         width: 366px;
       }
-      .size-4 {
+      .board-16 {
         width: 648px;
       }
+
+      .section-4 {
+        width: 80px;
+      }
+      .section-9 {
+        width: 120px;
+      }
+      .section-16 {
+        width: 160px;
+      }
     </style>
+    <start-menu></start-menu>
+    <end-menu open="[[wonGame]]"></end-menu>
     <div class="board">
-      <start-menu id="start-menu"></start-menu>
-      <end-menu id="end-menu" open="[[wonGame]]"></end-menu>
       <template is="dom-repeat" items="[[sections]]">
-        <sudoku-section section-id="[[index]]"
+        <sudoku-section class="section"
+                        section-id="[[index]]"
                         blocks="[[item.values]]"
-                        numbers="[[numbers]]"
+                        numbers="{{numbers}}"
                         invalid-rows$="[[item.invalidRows]]"
                         invalid-cols$="[[item.invalidCols]]"
                         use-hexadecimal="[[useHexadecimal]]">
@@ -53,8 +64,7 @@
           },
           numbers: {
             type: Number,
-            notify: true,
-            observer: '_resizeBoard'
+            notify: true
           },
           useHexadecimal: {
             type: Boolean,
@@ -70,6 +80,10 @@
             computed: '_hasWonGame(sections)'
           }
         };
+      }
+      static get observers() { return [
+          '_resizeBoard(numbers)'
+        ];
       }
       constructor() {
         super();
@@ -90,25 +104,23 @@
           }));
         }
       }
-      _resizeBoard(newValue, oldValue) {
+      _resizeBoard(newValue) {
+        var elem = Polymer.dom(this.root).querySelector('.board');
         switch (newValue) {
           case 4:
-            var elem = Polymer.dom(this.root).querySelector('.board');
-            elem.classList.remove('size-3');
-            elem.classList.remove('size-4');
-             elem.classList.add('size-2');
+            elem.classList.remove('board-9');
+            elem.classList.remove('board-16');
+            elem.classList.add('board-4');
             break;
           case 9:
-            var elem = Polymer.dom(this.root).querySelector('.board');
-            elem.classList.remove('size-2');
-            elem.classList.remove('size-4');
-            elem.classList.add('size-3');
+            elem.classList.remove('board-4');
+            elem.classList.remove('board-16');
+            elem.classList.add('board-9');
             break;
           case 16:
-            var elem = Polymer.dom(this.root).querySelector('.board');
-            elem.classList.remove('size-2');
-            elem.classList.remove('size-3');
-            elem.classList.add('size-4');
+            elem.classList.remove('board-4');
+            elem.classList.remove('board-9');
+            elem.classList.add('board-16');
           break;
           default:
             break;

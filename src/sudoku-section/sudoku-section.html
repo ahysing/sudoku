@@ -11,15 +11,6 @@
         @apply --layout-wrap;
         border: 1px solid black;
       }
-      :host([numbers="4"]) {
-        width: 80px;
-      }
-      :host([numbers="9"]) {
-        width: 120px;
-      }
-      :host([numbers="16"]) {
-        width: 160px;
-      }
     </style>
     <template is="dom-repeat" items="{{blocks}}" mutable-data>
       <sudoku-block value="{{item}}"
@@ -48,10 +39,11 @@
                 type: Array,
                 value: [],
                 notify: true,
-                observer: '_signalSectionChange'
               },
               numbers: {
-                type: Number
+                type: Number,
+                observer: '_resizeSection',
+                notify: true
               },
               sectionId: {
                 type: Number
@@ -83,18 +75,41 @@
       }
       ready() {
         super.ready();
-        console.log('ready');
+        console.log('ready', this.get('numbers'));
         this.addEventListener('inputadded', this.handleInputAdded.bind(this));
         this.addEventListener('rowchanged', this.handleRowChanged.bind(this));
         this.addEventListener('columnchanged', this.handleColumnChanged.bind(this));
       }
-      _signalSectionChange(newValue, oldValue) {
-        console.log('_signalSectionChange', oldValue, newValue);
+      _resizeSection(newValue) {
+         var elem = this;
+         if (elem) {
+           switch (newValue) {
+            case 4:
+              elem.classList.remove('section-9');
+              elem.classList.remove('section-16');
+              elem.classList.add('section-4');
+              break;
+            case 9:
+              elem.classList.remove('section-4');
+              elem.classList.remove('section-16');
+              elem.classList.add('section-9');
+              break;
+            case 16:
+              elem.classList.remove('section-4');
+              elem.classList.remove('section-9');
+              elem.classList.add('section-16');
+              break;
+            default:
+              break;
+           }
+         } else {
+           console.warn('unable to grab web component.');
+         } 
       }
-      
+
       handleInputAdded (evt) {
         console.log('input added', evt.detail);
-        this.set('blocks.' + evt.detail.index, evt.detail.value);
+        this.set(['blocks' + evt.detail.index], evt.detail.value);
         var blocks = this.get('blocks');
         if (!this.validateSection(blocks)) {
           console.warn('failed section', blocks);
@@ -165,8 +180,6 @@
     <style is="custom-style">
       :host {
         display: block;
-      }
-      .block {
         width: 40px;
         text-align: center;
         font-size: 2.5em;
@@ -175,17 +188,15 @@
       paper-input:focus {
         color: blue;
       }
-      :host([is-invalid-section]) 
-      :host([is-in-invalid-row])
-      :host([is-in-invalid-col])
+      :host([invalid])
       {
         background: pink;
-        @apply --sudoku-block-invalid-background;
+      }
+      .internal-invalid
+      {
+        background: pink;
       }
       paper-input {
-       /* --paper-input-container-underline: {
-          display: none;
-       }*/
        --paper-input-container-disabled: {
          opacity: 1;
        }
@@ -196,7 +207,7 @@
     </style>
     <sudoku-block-validator numbers="[[numbers]]"
                             use-hexadecimal="[[useHexadecimal]]"
-                            is-valid="{{isValidBlock}}">
+                            is-valid="{{isValidValue}}">
     </sudoku-block-validator>
     <paper-input class="block"
                  no-label-float
@@ -226,15 +237,11 @@
             type: Boolean,
             value: false
           },
-          isInInvalidRow: {
+          invalid: {
             type: Boolean,
-            computed: '_isInInvalidRow(invalidRows, index, numbers)'
+            computed: '_isInternalInvalid(isInvalidSection, invalidRows, invalidCols, index, numbers)'
           },
-          isInInvalidColumn: {
-            type: Boolean,
-            computed: '_isInInvalidColumn(invalidCols, index, numbers)'
-          },
-          isValidBlock: {
+          isValidValue: {
             type: Boolean
           },
           invalidRows: {
@@ -273,13 +280,27 @@
       }
       _isInInvalidRow(invalidRows, index, numbers) {
         var val = Array.isArray(invalidRows) && invalidRows && invalidRows.includes(Math.floor(index / Math.sqrt(numbers)));
-        console.log('_isInInvalidRow', invalidRows, val);
         return val;
       }
       _isInInvalidColumn(invalidCols, index, numbers) {
         var val = Array.isArray(invalidCols) && invalidCols && invalidCols.includes(index % Math.sqrt(numbers));
-        console.log('_isInInvalidColumn', invalidCols, val);
-        return true;
+        return val;
+      }
+      _isInternalInvalid(isInvalidSection, invalidRows, invalidCols, index, numbers) {
+        var val = isInvalidSection || this._isInInvalidRow(invalidRows, index, numbers) || this._isInInvalidColumn(invalidCols, index, numbers);
+        var block = Polymer.dom(this.root).querySelector('.block');
+        console.log('_isInternalInvalid', val);
+        if (block) {
+          if (val) {
+            block.classList.add('internal-invalid');
+          } else {
+            block.classList.remove('internal-invalid');
+          }
+        } else {
+          console.warn('missing input box with class \'block\' to mark invalid');
+        }
+
+        return val;
       }
       _detectReadOnlyField(value) {
         console.log('_detectReadOnlyField(value)', value);
@@ -293,7 +314,7 @@
         console.log('_signalBlockChange', oldValue, newValue);
         const numbers = this.get('numbers');
         const rowsAndColumns = Math.sqrt(numbers);
-        const isValid = this.get('isValidBlock');
+        const isValid = this.get('isValidValue');
         if (isValid || isValid === undefined) {
           var value = this.get('value');
           var index = this.get('index');
@@ -345,8 +366,7 @@
       static get properties () {
         return {
           numbers: {
-            type: Number,
-            value: 0
+            type: Number
           },
           useHexadecimal: {
             type: Boolean,
