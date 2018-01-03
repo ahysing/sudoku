@@ -109,13 +109,22 @@
 
       handleInputAdded (evt) {
         console.log('input added', evt.detail);
-        this.set(['blocks' + evt.detail.index], evt.detail.value);
         var blocks = this.get('blocks');
+        blocks[evt.detail.index] = evt.detail.value;
+        this.set(['blocks' + evt.detail.index], evt.detail.value);
         if (!this.validateSection(blocks)) {
           console.warn('failed section', blocks);
           this.set('isInvalidSection', true);
         } else {
           this.set('isInvalidSection', false);
+          if (this.hasFinishedSection(blocks)){
+            this.dispatchEvent(new CustomEvent('sectionfinished', {
+              detail: {},
+              bubbles: true,
+              cancelable: true,
+              composed: true
+            }));
+          }
         }
       }
       handleRowChanged(evt) {
@@ -123,13 +132,13 @@
         
         var detail = evt.detail;
         detail.sectionId = sectionId;
-        
-        this.dispatchEvent(new CustomEvent('sectionrowchanged', {
-              detail: detail,
-              bubbles: true,
-              cancelable: true,
-              composed: true
-            }));
+        var evt = {
+                    detail: detail,
+                    bubbles: true,
+                    cancelable: true,
+                    composed: true
+                  };
+        this.dispatchEvent(new CustomEvent('sectionrowchanged', evt));
       }
       handleColumnChanged(evt) {
         var sectionId = this.get('sectionId');
@@ -143,6 +152,11 @@
               cancelable: true,
               composed: true
             }));
+      }
+      hasFinishedSection(values) {
+        return values.every(function(x) {
+          return Boolean(x);
+        });
       }
       validateSection(values) {
         var numbers = this.get('numbers');
@@ -314,49 +328,46 @@
         console.log('_signalBlockChange', oldValue, newValue);
         const numbers = this.get('numbers');
         const rowsAndColumns = Math.sqrt(numbers);
-        const isValid = this.get('isValidValue');
-        if (isValid || isValid === undefined) {
-          var value = this.get('value');
-          var index = this.get('index');
-          var blockParameters = {
-            index: index,
-            value: value
-          };
+        var value = this.get('value');
+        var index = this.get('index');
+        var blockParameters = {
+          index: index,
+          value: value
+        };
 
-          this.dispatchEvent(new CustomEvent('inputadded', {
-            detail: blockParameters,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          }));
+        this.dispatchEvent(new CustomEvent('inputadded', {
+          detail: blockParameters,
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        }));
 
-          const rowId = Math.floor(index / rowsAndColumns); 
-          const columnId = (index % rowsAndColumns);
+        const rowId = Math.floor(index / rowsAndColumns); 
+        const columnId = (index % rowsAndColumns);
 
-          var rowParameters = {
-            rowId: rowId,
-            value: value
-          };
+        var rowParameters = {
+          rowId: rowId,
+          value: value
+        };
 
-          this.dispatchEvent(new CustomEvent('rowchanged', {
-            detail: rowParameters,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          }));
-          
-          var columnParameters = {
-            columnId: columnId,
-            value: value
-          };
+        this.dispatchEvent(new CustomEvent('rowchanged', {
+          detail: rowParameters,
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        }));
+        
+        var columnParameters = {
+          columnId: columnId,
+          value: value
+        };
 
-          this.dispatchEvent(new CustomEvent('columnchanged', {
-            detail: columnParameters,
-            bubbles: true,
-            cancelable: true,
-            composed: true
-          }));
-        }
+        this.dispatchEvent(new CustomEvent('columnchanged', {
+          detail: columnParameters,
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        }));
       }
     }
 

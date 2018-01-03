@@ -14,12 +14,19 @@
       :host {
         display: block;
       }
+      h2 {
+        font-size: 3em;
+      }
+      p {
+        font-size: 2em;
+      }
       .board {
         border: 3px;
       }
     </style>
     <paper-dialog modal opened="[[open]]" on-openstartmenu="handleOpenEndMenu">
       <h2>You won!</h2>
+      <p>[[text]]</p>
       <paper-dialog-scrollable>
         <paper-button autofocus on-tap="handleConfirm"><iron-icon icon="hardware:videogame-asset"></iron-icon>OK</paper-button>
       </paper-dialog-scrollable>
@@ -33,13 +40,17 @@
      */
     class EndMenu extends Polymer.Element {
       static get is() {
-        return "end-menu";
+        return 'end-menu';
       }
       static get properties() {
         return {
           open: {
             type: Boolean,
             notify: true
+          },
+          text: {
+            type: String,
+            value: '🎈'
           }
         }
       }
@@ -48,23 +59,28 @@
       }
       ready () {
         super.ready();
-        console.log("end-menu ready");
-        this.addEventListener("openstartmenu", this.handleOpenEndMenu.bind(this));
+        console.log('end-menu ready');
+        this.addEventListener('openstartmenu', this.handleOpenEndMenu.bind(this));
       }
       handleOpenEndMenu(evt) {
-        console.log("handleOpenEndMenu");
-        this.set("open", true);
+        this.set('open', true);
+        var texts = [
+          'The name “Sudoku” stems from two Japanese words: “su”, which means “number,” and doku, which means “single.” Translated, it mostly means “single numbers only.',
+          'Horray! 	🎁',
+          'You are a super player.',
+          'I\'ve put in so many enigmas and puzzles that it will keep the professors busy for centuries arguing over what I meant, and that\'s the only way of insuring one\'s immortality.\n\t - James Joyce',
+        ];
+        var text = texts[Math.floor(Math.random() * texts.length - 1)];
+        this.set('text', text);
       }
       handleConfirm (evt) {
         this.set('open', false);
-        var menu = Polymer.dom(this.root).querySelector('start-menu');
-        if (menu) {
-          menu.dispatchEvent(new CustomEvent('openstartmenu', {
-            detail: {},
-            bubbles: true,
-            cancelable: true
-          }));
-        }
+        this.dispatchEvent(new CustomEvent('closeendmenu', {
+          detail: {},
+          bubbles: true,
+          cancelable: true,
+          composed: true
+        }));        
       }
     }
 

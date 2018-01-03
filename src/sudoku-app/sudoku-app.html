@@ -34,7 +34,7 @@
       }
     </style>
     <start-menu></start-menu>
-    <end-menu open="[[wonGame]]"></end-menu>
+    <end-menu open="{{wonGame}}"></end-menu>
     <div class="board">
       <template is="dom-repeat" items="[[sections]]">
         <sudoku-section class="section"
@@ -76,8 +76,7 @@
             notify: true
           },
           wonGame: {
-            type: Boolean,
-            computed: '_hasWonGame(sections)'
+            type: Boolean
           }
         };
       }
@@ -92,9 +91,14 @@
         super.ready();
         console.log('sudoku-app ready');
         
+        this.addEventListener('closeendmenu', this.handleCloseEndMenu.bind(this));
+        this.addEventListener('sectionfinished', this.handleSectionFinished.bind(this));
         this.addEventListener('closestartmenu', this.handleCloseStartMenu.bind(this));
         this.addEventListener('sectionrowchanged', this.handleSectionRowChanged.bind(this));
         this.addEventListener('sectioncolumnchanged', this.handleSectionColumnChanged.bind(this));
+        this.start();
+      }
+      start() {
         var menu = Polymer.dom(this.root).querySelector('start-menu');
         if (menu) {
           menu.dispatchEvent(new CustomEvent('openstartmenu', {
@@ -103,6 +107,9 @@
             cancelable: true
           }));
         }
+      }
+      handleCloseEndMenu (evt) {
+        this.start();
       }
       _resizeBoard(newValue) {
         var elem = Polymer.dom(this.root).querySelector('.board');
@@ -124,19 +131,6 @@
           break;
           default:
             break;
-        }
-      }
-      _hasWonGame(sections) {
-        var invalidRows = sections.invalidRows;
-        var invalidCols = sections.invalidCols;
-        if(invalidRows && invalidCols && invalidRows.length === 0 && invalidCols.length === 0) {
-          var allFilled = sections.every(sec => sec.every(value => value !== null));
-          if (allFilled) {
-            var validSections = sections.every(sec => this.isValid(sec));
-            return validSections;
-          }
-        } else {
-          return false;
         }
       }
       getRandomInt(min, max) {
@@ -294,6 +288,16 @@
         this.set('numbers', evt.detail.numbers);
         this.set('useHexadecimal', evt.detail.useHexadecimal);
         this.setupGame(evt.detail);
+      }
+      handleSectionFinished (evt) {
+        var sections = this.get('sections');
+        var hasWon = sections.every(function(section) {
+          return section.values.every(function(value) {
+            return Boolean(value);
+          });
+        });
+
+        this.set('wonGame', hasWon);
       }
       isValid(values) {
         var numbers = this.get('numbers');

@@ -48,7 +48,7 @@
      */
     class StartMenu extends Polymer.Element {
       static get is() {
-        return "start-menu";
+        return 'start-menu';
       }
       static get properties() {
         return {
@@ -59,7 +59,7 @@
           },
           difficulty: {
             type: String,
-            value: "Medium",
+            value: 'Medium',
             notify: true
           },
           useHexadecimal: {
@@ -77,18 +77,18 @@
       }
       ready () {
         super.ready();
-        console.log("start-menu ready");
-        //this.set("open", true);
-        this.addEventListener("openstartmenu", this.handleOpenStartMenu.bind(this));
+        console.log('start-menu ready');
+        //this.set('open', true);
+        this.addEventListener('openstartmenu', this.handleOpenStartMenu.bind(this));
       }
       handleOpenStartMenu(evt) {
-        console.log("handleOpenStartMenu");
-        this.set("open", true);
+        console.log('handleOpenStartMenu');
+        this.set('open', true);
       }
       handleConfirm (evt) {
-        console.log("handleConfirm", evt);
-        var numbers = parseInt(this.get("numbers"));
-        var difficulty = this.get("difficulty");
+        console.log('handleConfirm', evt);
+        var numbers = parseInt(this.get('numbers'));
+        var difficulty = this.get('difficulty');
         var useHexadecimal = this.get('useHexadecimal');
         var startParameters = {
           numbers: numbers,
@@ -96,10 +96,10 @@
           useHexadecimal: useHexadecimal
         };
 
-        this.set("open", false);
+        this.set('open', false);
 
-        console.log("closestartmenu", startParameters);
-        this.dispatchEvent(new CustomEvent("closestartmenu", {
+        console.log('closestartmenu', startParameters);
+        this.dispatchEvent(new CustomEvent('closestartmenu', {
           detail: startParameters,
           bubbles: true,
           cancelable: true,
