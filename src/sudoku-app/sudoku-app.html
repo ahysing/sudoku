@@ -136,11 +136,11 @@
       getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
-      setupEasy(sections, numbers, radix) {
-        this.setupMedium(sections, numbers, radix);
-        this.setupMedium(sections, numbers, radix);
-      }
       setupMedium(sections, numbers, radix) {
+        this.setupEasy(sections, numbers, radix);
+        this.setupEasy(sections, numbers, radix);
+      }
+      setupEasy(sections, numbers, radix) {
         var assignedIndicesSections = new Array(numbers).fill(Array(numbers + 1).fill(true));
         for (var i = 0; i < sections.length; i++) {
           var sec = sections[i];
@@ -159,7 +159,9 @@
                       + (Math.floor(idx / rowsAndColumns));
             var colId = (sectionId % rowsAndColumns) * rowsAndColumns
                       + (idx % rowsAndColumns);
-            var value = parseInt(sections[sectionId][idx], radix);
+            var sec = sections[sectionId];
+            var values = sec.values;
+            var value = parseInt(values[idx], radix);
             assignedRows[rowId][value] = false;
             assignedColumns[colId][value] = false; 
           }
@@ -190,67 +192,9 @@
         });
       }
       setupHard(sections, numbers, radix) {
-        var sqrt = Math.sqrt(numbers);
-        var indices = Array(numbers).fill(-1);
-        var values = Array(numbers).fill(-1);
-        var assignedRows = Array(sqrt).fill(true);
-        var assignedColumns = Array(sqrt).fill(true);
-        var isEmptyRow = function (rows, idx) {
-          var i = Math.floor(idx / sqrt);
-          return rows[i];
-        }
-
-        var isEmptyColumn = function (columns, idx) {
-          var i = Math.floor(idx % sqrt);
-          return columns[i];
-        }
-
-        var fillRow = function (rows, idx) {
-          var i = Math.floor(idx / sqrt);
-          rows[i] = false;
-        }
-
-        var fillColumn = function (columns, idx) {
-          var i = Math.floor(idx % sqrt);
-          columns[i] = false;
-        }
-        
-        console.log("applying board");
-        for (var i = 0; i < numbers; i++) {
-          var idx = -1;
-          var value = -1;
-          
-          var emptyRow, emptyColumn;
-          var safeGuardIdx = 0;
-          do {
-            idx = this.getRandomInt(0, numbers - 1);
-            emptyRow = isEmptyRow(assignedRows, idx);
-            emptyColumn = isEmptyColumn(assignedRows, idx);
-            safeGuardIdx ++;
-          } while (safeGuardIdx < numbers && (!emptyRow || !emptyColumn))
-          if (safeGuardIdx != numbers) {
-            fillRow(assignedRows, idx);
-            fillColumn(assignedColumns, idx);
-            indices[i] = idx;
-          }
-
-          var saveGuardValue = 0;
-          do {
-            value = this.getRandomInt(1, numbers);
-            saveGuardValue ++;
-          } while (saveGuardValue < numbers && values.includes(value))
-          if (saveGuardValue != numbers) {
-            values[i] = value;
-          }
-        }
-
-        for (var i = 0; i < numbers; i++) {
-          var idx = indices[i];
-          var value = values[i];
-          if (value > 0) {
-            sections[i][idx] = value.toString(radix).toUpperCase();
-          }
-        }
+        this.setupEasy(sections, numbers, radix);
+        this.setupEasy(sections, numbers, radix);
+        this.setupEasy(sections, numbers, radix);
       }
       setupGame(parameters) {
         const difficulty = parameters.difficulty;
