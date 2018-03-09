@@ -1,6 +1,9 @@
 # \<sudoku\>
 
 interactive sudoku solver
+### Usage###
+
+For a live version visit [Hysings Sudoku](https://ahysing.github.io/sudoku/) here on Github pages.
 
 ## Install the Polymer-CLI
 
