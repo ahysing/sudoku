@@ -1,6 +1,7 @@
-# \<sudoku\>
+# sudoku
 
-interactive sudoku solver
+Sudoku game om the web! Choose between 2 by 2, 3 by 3 or 4 by 4 sectors to fill. THe games is interative and shows errors with red rows, columsn or sectors. The game has different difficulties based on how many squares comes prefilled. Enjoy.
+
 ### Usage###
 
 For a live version visit [Hysings Sudoku](https://ahysing.github.io/sudoku/) here on Github pages.
